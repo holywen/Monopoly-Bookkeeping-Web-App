@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monopoly Bookkeeping</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1976d2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Monopoly">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #1976d2;
+            --secondary-color: #424242;
+            --success-color: #4caf50;
+            --error-color: #f44336;
+            --warning-color: #ff9800;
+            --background: #f5f5f5;
+            --surface: #ffffff;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --border-radius: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        header {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .offline-indicator {
+            display: none;
+            background: var(--warning-color);
+            color: white;
+            padding: 8px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .offline-indicator.show {
+            display: block;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            min-height: 44px;
+            min-width: 44px;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            background: #1565c0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background: #353535;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+        }
+
+        .btn-error {
+            background: var(--error-color);
+        }
+
+        .card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+        }
+
+        .player-setup {
+            margin-bottom: 16px;
+        }
+
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .token-option {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            background: var(--surface);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            position: relative;
+        }
+
+        .token-option:hover {
+            border-color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .token-option.selected {
+            border-color: var(--primary-color);
+            background: rgba(25, 118, 210, 0.1);
+        }
+
+        .token-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--primary-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .token-svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background: var(--surface);
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+
+        .player-list {
+            margin-bottom: 16px;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            margin-bottom: 8px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .player-item:hover {
+            transform: translateX(4px);
+        }
+
+        .player-item button {
+            margin-left: 8px;
+        }
+
+        .player-token {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .player-balance {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .balance-positive {
+            color: var(--success-color);
+        }
+
+        .balance-negative {
+            color: var(--error-color);
+        }
+
+        .transaction-form {
+            margin-bottom: 16px;
+        }
+
+        .transaction-type-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .type-btn {
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 12px;
+            text-align: center;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .type-btn:hover {
+            border-color: var(--primary-color);
+        }
+
+        .type-btn.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            margin-bottom: 8px;
+            box-shadow: var(--shadow);
+            font-size: 14px;
+        }
+
+        .history-time {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .nav-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            transition: var(--transition);
+        }
+
+        .nav-dot.active {
+            background: var(--primary-color);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .swipe-hint {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎩 Monopoly Bookkeeping</h1>
+            <p style="color: var(--text-secondary); font-size: 14px;">Track your game finances</p>
+        </header>
+
+        <div class="offline-indicator" id="offlineIndicator">
+            📱 Offline Mode - All changes saved locally
+        </div>
+
+        <!-- Screen 1: Player Setup -->
+        <div class="screen active" id="screen1">
+            <div class="card">
+                <h2 style="margin-bottom: 16px;">Add Players</h2>
+
+                <div class="player-setup">
+                    <div class="input-group">
+                        <label for="playerName">Player Name</label>
+                        <input type="text" id="playerName" placeholder="Enter player name" maxlength="20">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Select Token</label>
+                        <div class="token-grid" id="tokenGrid">
+                            <!-- Tokens will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="initialBalance">Starting Balance ($)</label>
+                        <input type="number" id="initialBalance" value="1500" min="0" step="100">
+                    </div>
+
+                    <button class="btn" id="addPlayerBtn">Add Player</button>
+                </div>
+
+                <div class="player-list" id="playerList">
+                    <h3 style="margin-bottom: 12px;">Players</h3>
+                    <div id="playersContainer">
+                        <!-- Players will be listed here -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button class="btn btn-success" id="startGameBtn" style="display: none; flex: 1;">Start Game</button>
+                    <button class="btn btn-error" id="resetPlayersBtn" style="display: block; flex: 1;">Reset Players</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 2: Transaction -->
+        <div class="screen" id="screen2">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 style="margin: 0;">Game Actions</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="game.restartGame()" style="margin-right: 8px; padding: 8px 16px; font-size: 14px;">Restart Game</button>
+                        <button class="btn btn-error" onclick="game.endGame()" style="padding: 8px 16px; font-size: 14px;">End Game</button>
+                    </div>
+                </div>
+
+                <div class="transaction-form">
+                    <div class="transaction-type-selector">
+                        <button class="type-btn active" data-type="one-to-one">1→1</button>
+                        <button class="type-btn" data-type="one-to-many">1→Many</button>
+                        <button class="type-btn" data-type="many-to-one">Many→1</button>
+                        <button class="type-btn" data-type="adjust">Adjust</button>
+                    </div>
+
+                    <div class="input-group" id="fromPlayerGroup">
+                        <label for="fromPlayer">From/Player</label>
+                        <select id="fromPlayer">
+                            <option value="">Select player</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group" id="toPlayerGroup">
+                        <label for="toPlayer">To</label>
+                        <select id="toPlayer">
+                            <option value="">Select player</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group" id="adjustPlayerGroup" style="display: none;">
+                        <label for="adjustPlayer">Player to Adjust</label>
+                        <select id="adjustPlayer">
+                            <option value="">Select player</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group" id="toManyGroup" style="display: none;">
+                        <label>Recipients (select multiple)</label>
+                        <div id="toManyCheckboxes">
+                            <!-- Checkboxes will be populated -->
+                        </div>
+                    </div>
+
+                    <div class="input-group" id="fromManyGroup" style="display: none;">
+                        <label>Payers (select multiple)</label>
+                        <div id="fromManyCheckboxes">
+                            <!-- Checkboxes will be populated -->
+                        </div>
+                    </div>
+
+                    <div class="input-group" id="adjustTypeGroup" style="display: none;">
+                        <label>Adjustment Type</label>
+                        <select id="adjustType">
+                            <option value="add">Add Money</option>
+                            <option value="subtract">Subtract Money</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="amount">Amount ($)</label>
+                        <input type="number" id="amount" placeholder="0" min="0" step="1">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="description">Description (optional)</label>
+                        <input type="text" id="description" placeholder="e.g., Rent for Boardwalk">
+                    </div>
+
+                    <button class="btn btn-success" id="addTransactionBtn">Add Transaction</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 12px;">Current Balances</h3>
+                <div id="currentBalances">
+                    <!-- Balances will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: History -->
+        <div class="screen" id="screen3">
+            <div class="card">
+                <h2 style="margin-bottom: 16px;">Transaction History</h2>
+                <div class="history-list" id="historyList">
+                    <!-- Transaction history will be displayed here -->
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 12px;">Game Settings</h3>
+                <div class="input-group">
+                    <label for="newInitialBalance">Starting Balance ($)</label>
+                    <input type="number" id="newInitialBalance" value="1500" min="0" step="100">
+                </div>
+                <button class="btn btn-secondary" onclick="game.setNewInitialBalance()">Set New Starting Balance</button>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 12px;">Data Management</h3>
+                <button class="btn btn-secondary" id="exportBtn">Export Data</button>
+                <button class="btn btn-secondary" id="importBtn">Import Data</button>
+                <button class="btn btn-error" id="resetBtn">Reset Complete Game</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+            </div>
+        </div>
+
+        <div class="nav-dots">
+            <div class="nav-dot active" data-screen="1"></div>
+            <div class="nav-dot" data-screen="2"></div>
+            <div class="nav-dot" data-screen="3"></div>
+        </div>
+
+        <div class="swipe-hint">Swipe or tap dots to navigate</div>
+    </div>
+
+    <script>
+        // Game State Management
+        class MonopolyGame {
+            constructor() {
+                this.players = [];
+                this.transactions = [];
+                this.currentScreen = 1;
+                this.transactionType = 'one-to-one';
+                this.loadState();
+                this.initializeTokens();
+                this.bindEvents();
+                this.updateUI();
+                this.checkOnlineStatus();
+            }
+
+            initializeTokens() {
+                this.tokens = [
+                    { id: 'hat', name: 'Top Hat', svg: '<svg viewBox="0 0 100 100" fill="#333"><rect x="20" y="40" width="60" height="30" rx="5"/><rect x="15" y="30" width="70" height="15" rx="3"/><rect x="35" y="20" width="30" height="15" rx="3"/><rect x="45" y="15" width="10" height="10"/></svg>' },
+                    { id: 'car', name: 'Racecar', svg: '<svg viewBox="0 0 100 100" fill="#e74c3c"><rect x="20" y="50" width="60" height="20" rx="10"/><rect x="30" y="40" width="40" height="15" rx="5"/><circle cx="30" cy="70" r="8" fill="#333"/><circle cx="70" cy="70" r="8" fill="#333"/><rect x="50" y="45" width="15" height="10" fill="#87ceeb"/></svg>' },
+                    { id: 'dog', name: 'Scottish Terrier', svg: '<svg viewBox="0 0 100 100" fill="#8b4513"><ellipse cx="50" cy="60" rx="25" ry="20"/><rect x="35" y="40" width="30" height="25" rx="10"/><circle cx="40" cy="35" r="8"/><circle cx="60" cy="35" r="8"/><rect x="25" y="55" width="15" height="25" rx="5"/><rect x="60" y="55" width="15" height="25" rx="5"/></svg>' },
+                    { id: 'ship', name: 'Battleship', svg: '<svg viewBox="0 0 100 100" fill="#4682b4"><rect x="20" y="60" width="60" height="20" rx="3"/><rect x="30" y="40" width="40" height="25"/><rect x="45" y="25" width="10" height="20"/><polygon points="50,25 40,15 60,15"/></svg>' },
+                    { id: 'iron', name: 'Flat Iron', svg: '<svg viewBox="0 0 100 100" fill="#708090"><path d="M30 40 L70 40 L70 70 L50 80 L30 70 Z"/><rect x="35" y="30" width="30" height="15" rx="3"/><circle cx="50" cy="25" r="5"/></svg>' },
+                    { id: 'thimble', name: 'Thimble', svg: '<svg viewBox="0 0 100 100" fill="#c0c0c0"><path d="M40 30 L60 30 L65 70 L35 70 Z"/><ellipse cx="50" cy="30" rx="10" ry="5"/><circle cx="50" cy="20" r="3"/><rect x="45" y="15" width="10" height="8"/></svg>' }
+                ];
+                this.selectedToken = null;
+                this.renderTokens();
+            }
+
+            renderTokens() {
+                const tokenGrid = document.getElementById('tokenGrid');
+                tokenGrid.innerHTML = this.tokens.map(token => `
+                    <div class="token-option" data-token-id="${token.id}">
+                        <div class="token-svg">${token.svg}</div>
+                    </div>
+                `).join('');
+
+                // Add click handlers
+                tokenGrid.querySelectorAll('.token-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        tokenGrid.querySelectorAll('.token-option').forEach(o => o.classList.remove('selected'));
+                        option.classList.add('selected');
+                        this.selectedToken = option.dataset.tokenId;
+                    });
+                });
+            }
+
+            bindEvents() {
+                // Player management
+                document.getElementById('addPlayerBtn').addEventListener('click', () => this.addPlayer());
+                document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
+                document.getElementById('resetPlayersBtn').addEventListener('click', () => this.resetPlayers());
+
+                // Transaction management
+                document.getElementById('addTransactionBtn').addEventListener('click', () => this.addTransaction());
+
+                // Transaction type switching
+                document.querySelectorAll('.type-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.transactionType = btn.dataset.type;
+                        this.updateTransactionForm();
+                    });
+                });
+
+                // Navigation
+                document.querySelectorAll('.nav-dot').forEach(dot => {
+                    dot.addEventListener('click', () => {
+                        this.switchScreen(parseInt(dot.dataset.screen));
+                    });
+                });
+
+                // Swipe navigation
+                this.setupSwipeNavigation();
+
+                // Data management
+                document.getElementById('exportBtn').addEventListener('click', () => this.exportData());
+                document.getElementById('importBtn').addEventListener('click', () => {
+                    document.getElementById('importFile').click();
+                });
+                document.getElementById('importFile').addEventListener('change', (e) => this.importData(e));
+                document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+
+                // Online/offline detection
+                window.addEventListener('online', () => this.checkOnlineStatus());
+                window.addEventListener('offline', () => this.checkOnlineStatus());
+            }
+
+            setupSwipeNavigation() {
+                let touchStartX = 0;
+                let touchEndX = 0;
+
+                document.addEventListener('touchstart', (e) => {
+                    touchStartX = e.changedTouches[0].screenX;
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    this.handleSwipe();
+                });
+
+                this.handleSwipe = () => {
+                    const swipeThreshold = 50;
+                    const diff = touchStartX - touchEndX;
+
+                    if (Math.abs(diff) > swipeThreshold) {
+                        if (diff > 0 && this.currentScreen < 3) {
+                            this.switchScreen(this.currentScreen + 1);
+                        } else if (diff < 0 && this.currentScreen > 1) {
+                            this.switchScreen(this.currentScreen - 1);
+                        }
+                    }
+                };
+            }
+
+            switchScreen(screenNumber) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(`screen${screenNumber}`).classList.add('active');
+
+                document.querySelectorAll('.nav-dot').forEach(dot => {
+                    dot.classList.remove('active');
+                    if (parseInt(dot.dataset.screen) === screenNumber) {
+                        dot.classList.add('active');
+                    }
+                });
+
+                this.currentScreen = screenNumber;
+                this.updateUI();
+            }
+
+            addPlayer() {
+                const nameInput = document.getElementById('playerName');
+                const name = nameInput.value.trim();
+
+                if (!name) {
+                    alert('Please enter a player name');
+                    return;
+                }
+
+                if (!this.selectedToken) {
+                    alert('Please select a token');
+                    return;
+                }
+
+                if (this.players.some(p => p.name === name)) {
+                    alert('Player name already exists');
+                    return;
+                }
+
+const initialBalance = parseInt(document.getElementById('initialBalance').value) || 1500;
+                const player = {
+                    id: Date.now().toString(),
+                    name: name,
+                    token: this.tokens.find(t => t.id === this.selectedToken),
+                    balance: initialBalance,
+                    isActive: true
+                };
+
+                this.players.push(player);
+                this.saveState();
+                this.updateUI();
+
+                // Reset form
+                nameInput.value = '';
+                document.querySelectorAll('.token-option').forEach(o => o.classList.remove('selected'));
+                this.selectedToken = null;
+
+                // Disable used token
+                this.disableUsedToken(this.selectedToken);
+            }
+
+            disableUsedToken(tokenId) {
+                const tokenOption = document.querySelector(`[data-token-id="${tokenId}"]`);
+                if (tokenOption) {
+                    tokenOption.style.opacity = '0.5';
+                    tokenOption.style.pointerEvents = 'none';
+                }
+            }
+
+            startGame() {
+                if (this.players.length < 2) {
+                    alert('At least 2 players required to start the game');
+                    return;
+                }
+                this.switchScreen(2);
+            }
+
+            resetPlayers() {
+                if (confirm('Are you sure you want to reset all players? This will remove all players and reset the game.')) {
+                    this.players = [];
+                    this.transactions = [];
+                    this.saveState();
+                    this.updateUI();
+
+                    // Reset token selection
+                    this.selectedToken = null;
+                    document.querySelectorAll('.token-option').forEach(o => {
+                        o.classList.remove('selected');
+                        o.style.opacity = '1';
+                        o.style.pointerEvents = 'auto';
+                    });
+
+                    alert('All players reset successfully!');
+                }
+            }
+
+            updateTransactionForm() {
+                const fromPlayerGroup = document.getElementById('fromPlayerGroup');
+                const toPlayerGroup = document.getElementById('toPlayerGroup');
+                const toManyGroup = document.getElementById('toManyGroup');
+                const fromManyGroup = document.getElementById('fromManyGroup');
+                const adjustPlayerGroup = document.getElementById('adjustPlayerGroup');
+                const adjustTypeGroup = document.getElementById('adjustTypeGroup');
+                const fromPlayer = document.getElementById('fromPlayer');
+                const toPlayer = document.getElementById('toPlayer');
+
+                // Hide all optional groups first
+                fromPlayerGroup.style.display = 'none';
+                toPlayerGroup.style.display = 'none';
+                toManyGroup.style.display = 'none';
+                fromManyGroup.style.display = 'none';
+                adjustPlayerGroup.style.display = 'none';
+                adjustTypeGroup.style.display = 'none';
+
+                // Update player selects
+                this.updatePlayerSelects();
+
+                switch (this.transactionType) {
+                    case 'one-to-one':
+                        fromPlayerGroup.style.display = 'block';
+                        toPlayerGroup.style.display = 'block';
+                        break;
+                    case 'one-to-many':
+                        fromPlayerGroup.style.display = 'block';
+                        toManyGroup.style.display = 'block';
+                        this.renderToManyCheckboxes();
+                        break;
+                    case 'many-to-one':
+                        fromManyGroup.style.display = 'block';
+                        toPlayerGroup.style.display = 'block';
+                        this.renderFromManyCheckboxes();
+                        break;
+                    case 'adjust':
+                        adjustPlayerGroup.style.display = 'block';
+                        adjustTypeGroup.style.display = 'block';
+                        this.updateAdjustPlayerSelect();
+                        break;
+                }
+            }
+
+            updatePlayerSelects() {
+                const fromSelect = document.getElementById('fromPlayer');
+                const toSelect = document.getElementById('toPlayer');
+
+                const playerOptions = this.players.map(p =>
+                    `<option value="${p.id}">${p.name}</option>`
+                ).join('');
+
+                fromSelect.innerHTML = '<option value="">Select player</option>' + playerOptions;
+                toSelect.innerHTML = '<option value="">Select player</option>' + playerOptions;
+            }
+
+            renderToManyCheckboxes() {
+                const container = document.getElementById('toManyCheckboxes');
+                container.innerHTML = this.players.map(p => `
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" value="${p.id}" style="margin-right: 8px;">
+                        <span>${p.name} (${p.token.name})</span>
+                    </label>
+                `).join('');
+            }
+
+            renderFromManyCheckboxes() {
+                const container = document.getElementById('fromManyCheckboxes');
+                container.innerHTML = this.players.map(p => `
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" value="${p.id}" style="margin-right: 8px;">
+                        <span>${p.name} (${p.token.name})</span>
+                    </label>
+                `).join('');
+            }
+
+            updateAdjustPlayerSelect() {
+                const adjustSelect = document.getElementById('adjustPlayer');
+                const playerOptions = this.players.map(p =>
+                    `<option value="${p.id}">${p.name}</option>`
+                ).join('');
+                adjustSelect.innerHTML = '<option value="">Select player</option>' + playerOptions;
+            }
+
+            addTransaction() {
+                const amount = parseFloat(document.getElementById('amount').value);
+                const description = document.getElementById('description').value.trim();
+
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+
+                let from = [], to = [];
+
+                switch (this.transactionType) {
+                    case 'one-to-one':
+                        const fromSelect = document.getElementById('fromPlayer');
+                        const toSelect = document.getElementById('toPlayer');
+
+                        if (!fromSelect.value || !toSelect.value) {
+                            alert('Please select both players');
+                            return;
+                        }
+
+                        if (fromSelect.value === toSelect.value) {
+                            alert('Cannot transfer to the same player');
+                            return;
+                        }
+
+                        from = [fromSelect.value];
+                        to = [toSelect.value];
+                        break;
+
+                    case 'one-to-many':
+                        const fromManySelect = document.getElementById('fromPlayer');
+                        const toManyCheckboxes = document.querySelectorAll('#toManyCheckboxes input:checked');
+
+                        if (!fromManySelect.value || toManyCheckboxes.length === 0) {
+                            alert('Please select sender and at least one recipient');
+                            return;
+                        }
+
+                        if (toManyCheckboxes.length === 1 && toManyCheckboxes[0].value === fromManySelect.value) {
+                            alert('Cannot transfer to the same player');
+                            return;
+                        }
+
+                        from = [fromManySelect.value];
+                        to = Array.from(toManyCheckboxes).map(cb => cb.value);
+                        break;
+
+                    case 'many-to-one':
+                        const fromManyCheckboxes = document.querySelectorAll('#fromManyCheckboxes input:checked');
+                        const toManySelect = document.getElementById('toPlayer');
+
+                        if (fromManyCheckboxes.length === 0 || !toManySelect.value) {
+                            alert('Please select at least one payer and a recipient');
+                            return;
+                        }
+
+                        from = Array.from(fromManyCheckboxes).map(cb => cb.value);
+                        to = [toManySelect.value];
+                        break;
+
+                    case 'adjust':
+                        const adjustPlayer = document.getElementById('adjustPlayer');
+                        const adjustType = document.getElementById('adjustType');
+
+                        if (!adjustPlayer.value) {
+                            alert('Please select a player to adjust');
+                            return;
+                        }
+
+                        if (adjustType.value === 'add') {
+                            from = ['bank'];
+                            to = [adjustPlayer.value];
+                        } else {
+                            from = [adjustPlayer.value];
+                            to = ['bank'];
+                        }
+                        break;
+                }
+
+                // Process transaction
+                const transaction = {
+                    id: Date.now().toString(),
+                    type: this.transactionType,
+                    from: from,
+                    to: to,
+                    amount: amount,
+                    description: description || 'Transaction',
+                    timestamp: new Date().toISOString()
+                };
+
+                // Update balances
+                this.processTransaction(transaction);
+                this.transactions.push(transaction);
+                this.saveState();
+                this.updateUI();
+
+                // Reset form
+                document.getElementById('amount').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('fromPlayer').value = '';
+                document.getElementById('toPlayer').value = '';
+                document.getElementById('adjustPlayer').value = '';
+                document.getElementById('adjustType').value = 'add';
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+
+            processTransaction(transaction) {
+                const amountPerPerson = transaction.type === 'one-to-many'
+                    ? transaction.amount / transaction.to.length
+                    : transaction.type === 'many-to-one'
+                    ? transaction.amount / transaction.from.length
+                    : transaction.amount;
+
+                // Deduct from senders
+                transaction.from.forEach(playerId => {
+                    if (playerId === 'bank') return; // Bank doesn't have balance
+                    const player = this.players.find(p => p.id === playerId);
+                    if (player) {
+                        player.balance -= amountPerPerson;
+                    }
+                });
+
+                // Add to recipients
+                transaction.to.forEach(playerId => {
+                    if (playerId === 'bank') return; // Bank doesn't have balance
+                    const player = this.players.find(p => p.id === playerId);
+                    if (player) {
+                        player.balance += amountPerPerson;
+                    }
+                });
+            }
+
+            updateUI() {
+                this.updatePlayerList();
+                this.updateBalances();
+                this.updateTransactionHistory();
+                this.updateNavigationDots();
+            }
+
+            updatePlayerList() {
+                const container = document.getElementById('playersContainer');
+                const startBtn = document.getElementById('startGameBtn');
+
+                if (this.players.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-secondary);">No players added yet</p>';
+                    startBtn.style.display = 'none';
+                } else {
+                    container.innerHTML = this.players.map(player => `
+                        <div class="player-item" style="position: relative; align-items: center;">
+                            <div class="player-token">${player.token.svg}</div>
+                            <div class="player-info" style="flex: 1;">
+                                <div class="player-name">${player.name}</div>
+                                <div class="player-balance">$${player.balance}</div>
+                            </div>
+                            <button class="btn btn-error" onclick="game.deletePlayer('${player.id}')"
+                                style="background: var(--error-color); color: white; padding: 6px 12px; font-size: 12px; min-height: 32px; margin: 0;">
+                                Delete
+                            </button>
+                        </div>
+                    `).join('');
+
+                    startBtn.style.display = this.players.length >= 2 ? 'block' : 'none';
+                }
+            }
+
+            updateBalances() {
+                const container = document.getElementById('currentBalances');
+
+                if (this.players.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-secondary);">No players</p>';
+                } else {
+                    container.innerHTML = this.players.map(player => {
+                        const balanceClass = player.balance >= 0 ? 'balance-positive' : 'balance-negative';
+                        return `
+                            <div class="player-item">
+                                <div class="player-token">${player.token.svg}</div>
+                                <div class="player-info">
+                                    <div class="player-name">${player.name}</div>
+                                    <div class="player-balance ${balanceClass}">$${player.balance}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            updateTransactionHistory() {
+                const container = document.getElementById('historyList');
+
+                if (this.transactions.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-secondary);">No transactions yet</p>';
+                } else {
+                    const sortedTransactions = [...this.transactions].reverse();
+                    container.innerHTML = sortedTransactions.map(transaction => {
+                        const date = new Date(transaction.timestamp);
+                        const timeStr = date.toLocaleString();
+
+                        const getDisplayName = (id) => {
+                            if (id === 'bank') return '🏦 Bank';
+                            const player = this.players.find(p => p.id === id);
+                            return player ? player.name : 'Unknown';
+                        };
+
+                        const fromNames = transaction.from.map(getDisplayName).join(', ');
+                        const toNames = transaction.to.map(getDisplayName).join(', ');
+
+                        let transactionText = transaction.type === 'adjust'
+                            ? `<strong>${fromNames}</strong> ${fromNames.includes('Bank') ? '→' : '→ Bank'} <strong>${toNames}</strong>`
+                            : `<strong>${fromNames}</strong> → <strong>${toNames}</strong>`;
+
+                        return `
+                            <div class="history-item">
+                                <div class="history-time">${timeStr}</div>
+                                <div>${transactionText}</div>
+                                <div>$${transaction.amount} - ${transaction.description}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            updateNavigationDots() {
+                document.querySelectorAll('.nav-dot').forEach(dot => {
+                    dot.classList.remove('active');
+                    if (parseInt(dot.dataset.screen) === this.currentScreen) {
+                        dot.classList.add('active');
+                    }
+                });
+            }
+
+            checkOnlineStatus() {
+                const indicator = document.getElementById('offlineIndicator');
+                if (navigator.onLine) {
+                    indicator.classList.remove('show');
+                } else {
+                    indicator.classList.add('show');
+                }
+            }
+
+            // Data persistence
+            saveState() {
+                const state = {
+                    players: this.players,
+                    transactions: this.transactions,
+                    lastModified: new Date().toISOString()
+                };
+                localStorage.setItem('monopolyGameState', JSON.stringify(state));
+            }
+
+            loadState() {
+                const savedState = localStorage.getItem('monopolyGameState');
+                if (savedState) {
+                    try {
+                        const state = JSON.parse(savedState);
+                        this.players = state.players || [];
+                        this.transactions = state.transactions || [];
+
+                        // Reconstruct token objects
+                        this.players.forEach(player => {
+                            if (typeof player.token === 'string') {
+                                player.token = this.tokens.find(t => t.id === player.token) || this.tokens[0];
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error loading state:', e);
+                    }
+                }
+            }
+
+            exportData() {
+                const data = {
+                    players: this.players,
+                    transactions: this.transactions,
+                    exportDate: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `monopoly-game-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        this.players = data.players || [];
+                        this.transactions = data.transactions || [];
+
+                        // Reconstruct token objects
+                        this.players.forEach(player => {
+                            if (typeof player.token === 'string') {
+                                player.token = this.tokens.find(t => t.id === player.token) || this.tokens[0];
+                            }
+                        });
+
+                        this.saveState();
+                        this.updateUI();
+                        this.switchScreen(1);
+                        alert('Game data imported successfully!');
+                    } catch (error) {
+                        alert('Error importing file. Please check the file format.');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; // Reset file input
+            }
+
+            resetPlayers() {
+                if (confirm('Are you sure you want to reset all players? This will remove all players and reset the game.')) {
+                    this.players = [];
+                    this.transactions = [];
+                    this.saveState();
+                    this.updateUI();
+
+                    // Reset token selection
+                    this.selectedToken = null;
+                    document.querySelectorAll('.token-option').forEach(o => {
+                        o.classList.remove('selected');
+                        o.style.opacity = '1';
+                        o.style.pointerEvents = 'auto';
+                    });
+
+                    alert('All players reset successfully!');
+                }
+            }
+
+            setNewInitialBalance() {
+                const newBalance = parseInt(document.getElementById('newInitialBalance').value);
+                if (isNaN(newBalance) || newBalance < 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+
+                if (this.players.length > 0) {
+                    if (confirm(`This will reset all players and set new starting balance to $${newBalance}. Continue?`)) {
+                        this.players = [];
+                        this.transactions = [];
+                        this.saveState();
+                        this.updateUI();
+                        alert(`Starting balance set to $${newBalance}. Add new players to begin!`);
+                    }
+                } else {
+                    alert(`Starting balance set to $${newBalance}. Add players to begin!`);
+                }
+            }
+
+            deletePlayer(playerId) {
+                const player = this.players.find(p => p.id === playerId);
+                if (!player) return;
+
+                if (confirm(`Are you sure you want to remove ${player.name}?`)) {
+                    this.players = this.players.filter(p => p.id !== playerId);
+                    this.saveState();
+                    this.updateUI();
+                    this.reenableToken(player.token.id);
+                }
+            }
+
+            reenableToken(tokenId) {
+                const tokenOption = document.querySelector(`[data-token-id="${tokenId}"]`);
+                if (tokenOption) {
+                    tokenOption.style.opacity = '1';
+                    tokenOption.style.pointerEvents = 'auto';
+                }
+            }
+
+            restartGame() {
+                if (confirm('Are you sure you want to restart the game? This will reset all player balances to their starting amounts.')) {
+                    const initialBalance = parseInt(document.getElementById('initialBalance').value) || 1500;
+                    this.players.forEach(player => {
+                        player.balance = initialBalance;
+                    });
+                    this.transactions = [];
+                    this.saveState();
+                    this.updateUI();
+                    alert('Game restarted! All balances reset to starting amount.');
+                }
+            }
+
+            endGame() {
+                if (confirm('Are you sure you want to end the game and return to setup?')) {
+                    this.switchScreen(1);
+                    alert('Game ended! You can now modify players or start a new game.');
+                }
+            }
+
+            resetGame() {
+                if (confirm('Are you sure you want to reset the complete game? This will delete all players, transactions, and reset starting balance to $1500.')) {
+                    this.players = [];
+                    this.transactions = [];
+                    document.getElementById('initialBalance').value = 1500;
+                    document.getElementById('newInitialBalance').value = 1500;
+                    this.saveState();
+                    this.updateUI();
+                    this.switchScreen(1);
+
+                    // Reset token selection
+                    this.selectedToken = null;
+                    document.querySelectorAll('.token-option').forEach(o => {
+                        o.classList.remove('selected');
+                        o.style.opacity = '1';
+                        o.style.pointerEvents = 'auto';
+                    });
+
+                    alert('Complete game reset successfully!');
+                }
+            }
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+
+        // Initialize the game when DOM is ready
+        let game;
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new MonopolyGame();
+        });
+    </script>
+</body>
+</html>
