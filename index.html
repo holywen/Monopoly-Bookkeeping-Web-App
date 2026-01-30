@@ -819,9 +819,13 @@
 
             formatBalance(amount) {
                 if (amount >= 1000000) {
-                    return (amount / 1000000).toFixed(1) + 'M';
+                    const millions = amount / 1000000;
+                    // Show 2 decimal places for M unit
+                    return millions.toFixed(2) + 'M';
                 } else if (amount >= 1000) {
-                    return (amount / 1000).toFixed(0) + 'K';
+                    const thousands = amount / 1000;
+                    // Check if it's a whole number, if so show no decimal places, otherwise show 1 decimal
+                    return thousands % 1 === 0 ? thousands.toFixed(0) + 'K' : thousands.toFixed(1) + 'K';
                 } else {
                     return amount.toString();
                 }
