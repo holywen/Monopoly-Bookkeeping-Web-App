@@ -1,0 +1,1 @@
+{"name": "monopoly-bookkeeping", "version": "1.0.0", "description": "Monopoly Bookkeeping Web App", "main": "index.html", "scripts": {"build": "echo 'No build needed - static site'", "deploy": "wrangler pages deploy . --project-name monopoly-bookkeeping"}, "keywords": ["monopoly", "bookkeeping", "pwa", "mobile"], "author": "Your Name", "license": "MIT", "devDependencies": {}}
