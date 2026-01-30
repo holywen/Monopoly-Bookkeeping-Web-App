@@ -434,8 +434,14 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="initialBalance">Starting Balance ($)</label>
-                        <input type="number" id="initialBalance" value="1500" min="0" step="100">
+                        <label>Starting Balance ($)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="initialBalance" value="15" min="0" step="1" style="flex: 1;">
+                            <select id="initialBalanceUnit" style="flex: 0 0 80px;">
+                                <option value="M" selected>M</option>
+                                <option value="K">K</option>
+                            </select>
+                        </div>
                     </div>
 
                     <button class="btn" id="addPlayerBtn">Add Player</button>
@@ -518,8 +524,14 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="amount">Amount ($)</label>
-                        <input type="number" id="amount" placeholder="0" min="0" step="1">
+                        <label>Amount ($)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="amount" placeholder="0" min="0" step="1" style="flex: 1;">
+                            <select id="amountUnit" style="flex: 0 0 80px;">
+                                <option value="K" selected>K</option>
+                                <option value="M">M</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="input-group">
@@ -551,8 +563,14 @@
             <div class="card">
                 <h3 style="margin-bottom: 12px;">Game Settings</h3>
                 <div class="input-group">
-                    <label for="newInitialBalance">Starting Balance ($)</label>
-                    <input type="number" id="newInitialBalance" value="1500" min="0" step="100">
+                    <label>Starting Balance ($)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="number" id="newInitialBalance" value="15" min="0" step="1" style="flex: 1;">
+                        <select id="newInitialBalanceUnit" style="flex: 0 0 80px;">
+                            <option value="M" selected>M</option>
+                            <option value="K">K</option>
+                        </select>
+                    </div>
                 </div>
                 <button class="btn btn-secondary" onclick="game.setNewInitialBalance()">Set New Starting Balance</button>
             </div>
@@ -661,6 +679,37 @@
                 // Online/offline detection
                 window.addEventListener('online', () => this.checkOnlineStatus());
                 window.addEventListener('offline', () => this.checkOnlineStatus());
+
+                // Unit change handlers for input validation
+                this.setupUnitChangeHandlers();
+            }
+
+            setupUnitChangeHandlers() {
+                // Function to update input step based on unit
+                const updateInputStep = (inputId, unitSelectId) => {
+                    const input = document.getElementById(inputId);
+                    const unitSelect = document.getElementById(unitSelectId);
+                    
+                    const updateStep = () => {
+                        const unit = unitSelect.value;
+                        if (unit === 'M') {
+                            input.step = '0.1';
+                        } else {
+                            input.step = '1';
+                        }
+                    };
+
+                    // Initial update
+                    updateStep();
+                    
+                    // Update on unit change
+                    unitSelect.addEventListener('change', updateStep);
+                };
+
+                // Setup for all amount inputs
+                updateInputStep('initialBalance', 'initialBalanceUnit');
+                updateInputStep('amount', 'amountUnit');
+                updateInputStep('newInitialBalance', 'newInitialBalanceUnit');
             }
 
             setupSwipeNavigation() {
@@ -726,7 +775,11 @@
                     return;
                 }
 
-const initialBalance = parseInt(document.getElementById('initialBalance').value) || 1500;
+                const initialBalanceInput = document.getElementById('initialBalance');
+                const initialBalanceUnitSelect = document.getElementById('initialBalanceUnit');
+                const initialBalanceRaw = parseFloat(initialBalanceInput.value) || 15;
+                const initialBalanceUnit = initialBalanceUnitSelect ? initialBalanceUnitSelect.value : 'M';
+                const initialBalance = this.parseAmount(initialBalanceRaw, initialBalanceUnit);
                 const player = {
                     id: Date.now().toString(),
                     name: name,
@@ -756,6 +809,24 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
                 }
             }
 
+            parseAmount(amount, unit) {
+                switch (unit) {
+                    case 'K': return amount * 1000;
+                    case 'M': return amount * 1000000;
+                    default: return amount;
+                }
+            }
+
+            formatBalance(amount) {
+                if (amount >= 1000000) {
+                    return (amount / 1000000).toFixed(1) + 'M';
+                } else if (amount >= 1000) {
+                    return (amount / 1000).toFixed(0) + 'K';
+                } else {
+                    return amount.toString();
+                }
+            }
+
             startGame() {
                 if (this.players.length < 2) {
                     alert('At least 2 players required to start the game');
@@ -763,14 +834,18 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
                 }
 
                 // Update all players' balances to the current starting balance
-                const initialBalance = parseInt(document.getElementById('initialBalance').value) || 1500;
+                const initialBalanceInput = document.getElementById('initialBalance');
+                const initialBalanceUnitSelect = document.getElementById('initialBalanceUnit');
+                const initialBalanceRaw = parseFloat(initialBalanceInput.value) || 15;
+                const initialBalanceUnit = initialBalanceUnitSelect ? initialBalanceUnitSelect.value : 'M';
+                const initialBalance = this.parseAmount(initialBalanceRaw, initialBalanceUnit);
                 this.players.forEach(player => {
                     player.balance = initialBalance;
                 });
 
                 this.saveState();
                 this.switchScreen(2);
-                alert(`Game started! All players begin with $${initialBalance}.`);
+                alert(`Game started! All players begin with $${this.formatBalance(initialBalance)}.`);
             }
 
             resetPlayers() {
@@ -877,7 +952,11 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
             }
 
             addTransaction() {
-                const amount = parseFloat(document.getElementById('amount').value);
+                const amountInput = document.getElementById('amount');
+                const amountUnitSelect = document.getElementById('amountUnit');
+                const rawAmount = parseFloat(amountInput.value);
+                const amountUnit = amountUnitSelect ? amountUnitSelect.value : 'K';
+                const amount = this.parseAmount(rawAmount, amountUnit);
                 const description = document.getElementById('description').value.trim();
 
                 if (isNaN(amount) || amount <= 0) {
@@ -1029,7 +1108,7 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
                             <div class="player-token">${player.token.svg}</div>
                             <div class="player-info" style="flex: 1;">
                                 <div class="player-name">${player.name}</div>
-                                <div class="player-balance">$${player.balance}</div>
+                                <div class="player-balance">$${this.formatBalance(player.balance)}</div>
                             </div>
                             <button class="delete-player-btn" onclick="game.deletePlayer('${player.id}')" title="Delete player">
                                 🗑️
@@ -1054,7 +1133,7 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
                                 <div class="player-token">${player.token.svg}</div>
                                 <div class="player-info">
                                     <div class="player-name">${player.name}</div>
-                                    <div class="player-balance ${balanceClass}">$${player.balance}</div>
+                                    <div class="player-balance ${balanceClass}">$${this.formatBalance(player.balance)}</div>
                                 </div>
                             </div>
                         `;
@@ -1090,7 +1169,7 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
                             <div class="history-item">
                                 <div class="history-time">${timeStr}</div>
                                 <div>${transactionText}</div>
-                                <div>$${transaction.amount} - ${transaction.description}</div>
+                                <div>$${this.formatBalance(transaction.amount)} - ${transaction.description}</div>
                             </div>
                         `;
                     }).join('');
@@ -1211,25 +1290,32 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
             }
 
             setNewInitialBalance() {
-                const newBalance = parseInt(document.getElementById('newInitialBalance').value);
+                const newBalanceInput = document.getElementById('newInitialBalance');
+                const newBalanceUnitSelect = document.getElementById('newInitialBalanceUnit');
+                const newBalanceRaw = parseFloat(newBalanceInput.value) || 15;
+                const newBalanceUnit = newBalanceUnitSelect ? newBalanceUnitSelect.value : 'M';
+                const newBalance = this.parseAmount(newBalanceRaw, newBalanceUnit);
                 if (isNaN(newBalance) || newBalance < 0) {
                     alert('Please enter a valid amount');
                     return;
                 }
 
                 // Update the initial balance input on the setup screen
-                document.getElementById('initialBalance').value = newBalance;
+                document.getElementById('initialBalance').value = newBalanceRaw;
+                if (newBalanceUnitSelect) {
+                    newBalanceUnitSelect.value = newBalanceUnit;
+                }
 
                 if (this.players.length > 0) {
-                    if (confirm(`This will reset all players and set new starting balance to $${newBalance}. Continue?`)) {
+                    if (confirm(`This will reset all players and set new starting balance to $${this.formatBalance(newBalance)}. Continue?`)) {
                         this.players = [];
                         this.transactions = [];
                         this.saveState();
                         this.updateUI();
-                        alert(`Starting balance set to $${newBalance}. Add new players to begin!`);
+                        alert(`Starting balance set to $${this.formatBalance(newBalance)}. Add new players to begin!`);
                     }
                 } else {
-                    alert(`Starting balance set to $${newBalance}. Add players to begin!`);
+                    alert(`Starting balance set to $${this.formatBalance(newBalance)}. Add players to begin!`);
                 }
             }
 
@@ -1254,15 +1340,19 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
             }
 
             restartGame() {
-                const initialBalance = parseInt(document.getElementById('initialBalance').value) || 1500;
-                if (confirm(`Are you sure you want to restart the game? This will reset all player balances to $${initialBalance}.`)) {
+                const initialBalanceInput = document.getElementById('initialBalance');
+                const initialBalanceUnitSelect = document.getElementById('initialBalanceUnit');
+                const initialBalanceRaw = parseFloat(initialBalanceInput.value) || 15;
+                const initialBalanceUnit = initialBalanceUnitSelect ? initialBalanceUnitSelect.value : 'M';
+                const initialBalance = this.parseAmount(initialBalanceRaw, initialBalanceUnit);
+                if (confirm(`Are you sure you want to restart the game? This will reset all player balances to $${this.formatBalance(initialBalance)}.`)) {
                     this.players.forEach(player => {
                         player.balance = initialBalance;
                     });
                     this.transactions = [];
                     this.saveState();
                     this.updateUI();
-                    alert(`Game restarted! All balances reset to $${initialBalance}.`);
+                    alert(`Game restarted! All balances reset to $${this.formatBalance(initialBalance)}.`);
                 }
             }
 
@@ -1274,11 +1364,13 @@ const initialBalance = parseInt(document.getElementById('initialBalance').value)
             }
 
             resetGame() {
-                if (confirm('Are you sure you want to reset the complete game? This will delete all players, transactions, and reset starting balance to $1500.')) {
+                if (confirm('Are you sure you want to reset the complete game? This will delete all players, transactions, and reset starting balance to $15M.')) {
                     this.players = [];
                     this.transactions = [];
-                    document.getElementById('initialBalance').value = 1500;
-                    document.getElementById('newInitialBalance').value = 1500;
+                    document.getElementById('initialBalance').value = 15;
+                    document.getElementById('initialBalanceUnit').value = 'M';
+                    document.getElementById('newInitialBalance').value = 15;
+                    document.getElementById('newInitialBalanceUnit').value = 'M';
                     this.saveState();
                     this.updateUI();
                     this.switchScreen(1);
