@@ -402,6 +402,151 @@
         .hidden {
             display: none !important;
         }
+
+        /* Voice Control Styles */
+        .voice-control {
+            margin: 16px 0;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: var(--border-radius);
+            color: white;
+        }
+
+        .voice-btn {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: var(--border-radius);
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .voice-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .voice-btn.listening {
+            background: rgba(255, 255, 255, 0.4);
+            border-color: #4caf50;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .mic-icon {
+            font-size: 20px;
+        }
+
+        .voice-result {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-commands {
+            margin-top: 12px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .voice-commands h4 {
+            margin-bottom: 4px;
+        }
+
+        .voice-commands ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .voice-commands li {
+            margin-bottom: 2px;
+        }
+
+        /* Voice Confirmation Dialog */
+        .voice-confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .voice-confirm-content {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .voice-confirm-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .voice-confirm-text {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+        }
+
+        .voice-confirm-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .voice-confirm-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .voice-confirm-btn.confirm {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .voice-confirm-btn.cancel {
+            background: var(--secondary-color);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -549,6 +694,27 @@
                     <!-- Balances will be displayed here -->
                 </div>
             </div>
+
+            <!-- Voice Control Panel -->
+            <div class="card voice-control">
+                <h3 style="margin-bottom: 12px;">🎤 语音控制</h3>
+                <button id="voiceBtn" class="voice-btn">
+                    <span class="mic-icon">🎤</span>
+                    <span class="voice-text">按住说话</span>
+                </button>
+                <div id="voiceResult" class="voice-result">
+                    <span style="color: rgba(255,255,255,0.6);">按住按钮说出转账命令</span>
+                </div>
+                <div class="voice-commands">
+                    <h4>支持的命令：</h4>
+                    <ul>
+                        <li>• "玩家1转给玩家2十六万"</li>
+                        <li>• "给玩家1增加五十万"</li>
+                        <li>• "从玩家2减少二十万"</li>
+                        <li>• "Alice转给Bob 100K"</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <!-- Screen 3: History -->
@@ -593,6 +759,18 @@
         <div class="swipe-hint">Swipe or tap dots to navigate</div>
     </div>
 
+    <!-- Voice Confirmation Dialog -->
+    <div id="voiceConfirmDialog" class="voice-confirm-dialog hidden">
+        <div class="voice-confirm-content">
+            <div class="voice-confirm-title">确认语音命令</div>
+            <div class="voice-confirm-text" id="voiceConfirmText"></div>
+            <div class="voice-confirm-buttons">
+                <button id="voiceConfirmBtn" class="voice-confirm-btn confirm">确认</button>
+                <button id="voiceCancelBtn" class="voice-confirm-btn cancel">取消</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Game State Management
         class MonopolyGame {
@@ -606,6 +784,10 @@
                 this.bindEvents();
                 this.updateUI();
                 this.checkOnlineStatus();
+
+                // Initialize voice control
+                this.pendingVoiceCommand = null;
+                this.initializeVoiceControl();
             }
 
             initializeTokens() {
@@ -1389,6 +1571,330 @@
 
                     alert('Complete game reset successfully!');
                 }
+            }
+
+            // Voice Control System
+            initializeVoiceControl() {
+                // Check if speech recognition is supported
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    console.warn('Speech recognition not supported');
+                    document.getElementById('voiceBtn').style.display = 'none';
+                    return;
+                }
+
+                this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                this.setupVoiceRecognition();
+                this.setupVoiceUI();
+            }
+
+            setupVoiceRecognition() {
+                this.recognition.lang = 'zh-CN';
+                this.recognition.continuous = false;
+                this.recognition.interimResults = true;
+                this.recognition.maxAlternatives = 1;
+
+                this.recognition.onresult = (event) => {
+                    const result = event.results[event.results.length - 1];
+                    const transcript = result[0].transcript;
+
+                    if (result.isFinal) {
+                        this.processVoiceCommand(transcript);
+                    } else {
+                        this.showInterimResult(transcript);
+                    }
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.error('Voice recognition error:', event.error);
+                    let errorMsg = '识别失败';
+                    switch (event.error) {
+                        case 'no-speech':
+                            errorMsg = '没有检测到语音';
+                            break;
+                        case 'audio-capture':
+                            errorMsg = '无法访问麦克风';
+                            break;
+                        case 'not-allowed':
+                            errorMsg = '麦克风权限被拒绝';
+                            break;
+                        case 'network':
+                            errorMsg = '网络错误';
+                            break;
+                    }
+                    this.showVoiceError(errorMsg);
+                };
+
+                this.recognition.onend = () => {
+                    this.stopVoiceListening();
+                };
+            }
+
+            setupVoiceUI() {
+                const voiceBtn = document.getElementById('voiceBtn');
+
+                // Mouse events for desktop
+                voiceBtn.addEventListener('mousedown', () => this.startVoiceListening());
+                voiceBtn.addEventListener('mouseup', () => this.stopVoiceListening());
+                voiceBtn.addEventListener('mouseleave', () => this.stopVoiceListening());
+
+                // Touch events for mobile
+                voiceBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.startVoiceListening();
+                });
+                voiceBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.stopVoiceListening();
+                });
+                voiceBtn.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    this.stopVoiceListening();
+                });
+
+                // Confirmation dialog buttons
+                document.getElementById('voiceConfirmBtn').addEventListener('click', () => {
+                    this.executeVoiceCommand();
+                });
+
+                document.getElementById('voiceCancelBtn').addEventListener('click', () => {
+                    this.hideVoiceConfirmDialog();
+                });
+            }
+
+            startVoiceListening() {
+                if (!this.recognition) return;
+
+                try {
+                    this.recognition.start();
+                    document.getElementById('voiceBtn').classList.add('listening');
+                    document.querySelector('#voiceBtn .voice-text').textContent = '正在听取...';
+                    this.showInterimResult('正在听取您的命令...');
+                } catch (error) {
+                    console.error('Failed to start recognition:', error);
+                }
+            }
+
+            stopVoiceListening() {
+                if (!this.recognition) return;
+
+                try {
+                    this.recognition.stop();
+                } catch (error) {
+                    // Already stopped
+                }
+
+                document.getElementById('voiceBtn').classList.remove('listening');
+                document.querySelector('#voiceBtn .voice-text').textContent = '按住说话';
+            }
+
+            showInterimResult(text) {
+                document.getElementById('voiceResult').innerHTML =
+                    `<span style="color: rgba(255,255,255,0.8);">🎤 ${text}</span>`;
+            }
+
+            showVoiceError(error) {
+                document.getElementById('voiceResult').innerHTML =
+                    `<span style="color: #ff6b6b;">❌ ${error}</span>`;
+                setTimeout(() => {
+                    document.getElementById('voiceResult').innerHTML =
+                        '<span style="color: rgba(255,255,255,0.6);">按住按钮说出转账命令</span>';
+                }, 3000);
+            }
+
+            processVoiceCommand(transcript) {
+                const command = this.parseVoiceCommand(transcript);
+
+                if (command) {
+                    this.pendingVoiceCommand = command;
+                    this.showVoiceConfirmDialog(command);
+                } else {
+                    this.showVoiceError('无法识别命令，请重试');
+                }
+            }
+
+            parseVoiceCommand(text) {
+                // Chinese number mapping
+                const chineseNumbers = {
+                    '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+                    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+                    '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15,
+                    '二十': 20, '三十': 30, '四十': 40, '五十': 50,
+                    '六十': 60, '七十': 70, '八十': 80, '九十': 90,
+                    '一百': 100, '一百五': 150, '二百': 200, '三百': 300,
+                    '四百': 400, '五百': 500, '六百': 600, '七百': 700,
+                    '八百': 800, '九百': 900, '一千': 1000
+                };
+
+                // Convert Chinese numbers to Arabic
+                let processedText = text;
+                Object.entries(chineseNumbers).forEach(([chinese, arabic]) => {
+                    processedText = processedText.replace(new RegExp(chinese, 'g'), arabic);
+                });
+
+                // Pattern for transfer commands
+                const transferPatterns = [
+                    /(.+)转给(.+)(\d+)([KM])/i,
+                    /(.+)给(.+)转(\d+)([KM])/i,
+                    /(.+)支付给(.+)(\d+)([KM])/i,
+                    /(.+)转账给(.+)(\d+)([KM])/i
+                ];
+
+                // Pattern for adjustment commands
+                const adjustPatterns = [
+                    /给(.+)增加(\d+)([KM])/i,
+                    /给(.+)加上(\d+)([KM])/i,
+                    /给(.+)添加(\d+)([KM])/i,
+                    /从(.+)减少(\d+)([KM])/i,
+                    /从(.+)扣除(\d+)([KM])/i,
+                    /从(.+)减去(\d+)([KM])/i
+                ];
+
+                // Try to match transfer patterns
+                for (let pattern of transferPatterns) {
+                    const match = processedText.match(pattern);
+                    if (match) {
+                        return {
+                            type: 'transfer',
+                            from: match[1].trim(),
+                            to: match[2].trim(),
+                            amount: parseInt(match[3]),
+                            unit: match[4].toUpperCase(),
+                            originalText: text
+                        };
+                    }
+                }
+
+                // Try to match adjustment patterns
+                for (let pattern of adjustPatterns) {
+                    const match = processedText.match(pattern);
+                    if (match) {
+                        const isAdd = pattern.toString().includes('增加') ||
+                                     pattern.toString().includes('加上') ||
+                                     pattern.toString().includes('添加');
+
+                        return {
+                            type: 'adjust',
+                            player: match[1].trim(),
+                            amount: parseInt(match[2]),
+                            unit: match[3].toUpperCase(),
+                            adjustType: isAdd ? 'add' : 'subtract',
+                            originalText: text
+                        };
+                    }
+                }
+
+                return null;
+            }
+
+            showVoiceConfirmDialog(command) {
+                const dialog = document.getElementById('voiceConfirmDialog');
+                const textElement = document.getElementById('voiceConfirmText');
+
+                let confirmText = '';
+                if (command.type === 'transfer') {
+                    confirmText = `${command.from} 转给 ${command.to}<br><strong>${command.amount}${command.unit}</strong>`;
+                } else if (command.type === 'adjust') {
+                    const action = command.adjustType === 'add' ? '增加' : '减少';
+                    confirmText = `${command.player} ${action}<br><strong>${command.amount}${command.unit}</strong>`;
+                }
+
+                textElement.innerHTML = confirmText;
+                dialog.classList.remove('hidden');
+            }
+
+            hideVoiceConfirmDialog() {
+                document.getElementById('voiceConfirmDialog').classList.add('hidden');
+                this.pendingVoiceCommand = null;
+            }
+
+            executeVoiceCommand() {
+                if (!this.pendingVoiceCommand) return;
+
+                const command = this.pendingVoiceCommand;
+
+                try {
+                    if (command.type === 'transfer') {
+                        this.executeVoiceTransfer(command);
+                    } else if (command.type === 'adjust') {
+                        this.executeVoiceAdjust(command);
+                    }
+
+                    this.showVoiceSuccess('命令执行成功！');
+                } catch (error) {
+                    console.error('Voice command execution error:', error);
+                    this.showVoiceError('命令执行失败');
+                }
+
+                this.hideVoiceConfirmDialog();
+            }
+
+            executeVoiceTransfer(command) {
+                const fromPlayer = this.findPlayerByName(command.from);
+                const toPlayer = this.findPlayerByName(command.to);
+
+                if (!fromPlayer || !toPlayer) {
+                    throw new Error('Player not found');
+                }
+
+                const amount = this.parseAmount(command.amount, command.unit);
+
+                const transaction = {
+                    id: Date.now().toString(),
+                    type: 'one-to-one',
+                    from: [fromPlayer.id],
+                    to: [toPlayer.id],
+                    amount: amount,
+                    description: `语音转账: ${command.originalText}`,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.processTransaction(transaction);
+                this.transactions.push(transaction);
+                this.saveState();
+                this.updateUI();
+            }
+
+            executeVoiceAdjust(command) {
+                const player = this.findPlayerByName(command.player);
+
+                if (!player) {
+                    throw new Error('Player not found');
+                }
+
+                const amount = this.parseAmount(command.amount, command.unit);
+
+                const transaction = {
+                    id: Date.now().toString(),
+                    type: 'adjust',
+                    from: command.adjustType === 'add' ? ['bank'] : [player.id],
+                    to: command.adjustType === 'add' ? [player.id] : ['bank'],
+                    amount: amount,
+                    description: `语音调整: ${command.originalText}`,
+                    timestamp: new Date().toISOString()
+                };
+
+                this.processTransaction(transaction);
+                this.transactions.push(transaction);
+                this.saveState();
+                this.updateUI();
+            }
+
+            findPlayerByName(name) {
+                // Fuzzy matching for player names
+                const normalizedName = name.toLowerCase().trim();
+                return this.players.find(player =>
+                    player.name.toLowerCase().trim() === normalizedName
+                );
+            }
+
+            showVoiceSuccess(message) {
+                document.getElementById('voiceResult').innerHTML =
+                    `<span style="color: #4caf50;">✅ ${message}</span>`;
+
+                setTimeout(() => {
+                    document.getElementById('voiceResult').innerHTML =
+                        '<span style="color: rgba(255,255,255,0.6);">按住按钮说出转账命令</span>';
+                }, 3000);
             }
         }
 
