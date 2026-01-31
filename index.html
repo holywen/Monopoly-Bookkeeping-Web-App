@@ -712,6 +712,8 @@
                         <li>• "给玩家1增加五十万"</li>
                         <li>• "从玩家2减少二十万"</li>
                         <li>• "Alice转给Bob 100K"</li>
+                        <li>• "给Alice增加50K"</li>
+                        <li>• "从Bob减少200K"</li>
                     </ul>
                 </div>
             </div>
@@ -1725,39 +1727,80 @@
                     '八百': 800, '九百': 900, '一千': 1000
                 };
 
-                // Convert Chinese numbers to Arabic
-                let processedText = text;
-                Object.entries(chineseNumbers).forEach(([chinese, arabic]) => {
-                    processedText = processedText.replace(new RegExp(chinese, 'g'), arabic);
-                });
+                // Helper function to convert Chinese numbers in a string
+                const convertChineseNumbers = (str) => {
+                    let converted = str;
+                    Object.entries(chineseNumbers).forEach(([chinese, arabic]) => {
+                        converted = converted.replace(new RegExp(chinese, 'g'), arabic);
+                    });
+                    return converted;
+                };
 
-                // Pattern for transfer commands
+                // Pattern for transfer commands (with separate groups for names and numbers)
                 const transferPatterns = [
-                    /(.+)转给(.+)(\d+)([KM])/i,
-                    /(.+)给(.+)转(\d+)([KM])/i,
-                    /(.+)支付给(.+)(\d+)([KM])/i,
-                    /(.+)转账给(.+)(\d+)([KM])/i
+                    {
+                        regex: /(.+?)转给(.+?)(\d+)([KM])/i,
+                        type: 'transfer'
+                    },
+                    {
+                        regex: /(.+?)给(.+?)转(\d+)([KM])/i,
+                        type: 'transfer'
+                    },
+                    {
+                        regex: /(.+?)支付给(.+?)(\d+)([KM])/i,
+                        type: 'transfer'
+                    },
+                    {
+                        regex: /(.+?)转账给(.+?)(\d+)([KM])/i,
+                        type: 'transfer'
+                    }
                 ];
 
                 // Pattern for adjustment commands
                 const adjustPatterns = [
-                    /给(.+)增加(\d+)([KM])/i,
-                    /给(.+)加上(\d+)([KM])/i,
-                    /给(.+)添加(\d+)([KM])/i,
-                    /从(.+)减少(\d+)([KM])/i,
-                    /从(.+)扣除(\d+)([KM])/i,
-                    /从(.+)减去(\d+)([KM])/i
+                    {
+                        regex: /给(.+?)增加(\d+)([KM])/i,
+                        type: 'adjust',
+                        adjustType: 'add'
+                    },
+                    {
+                        regex: /给(.+?)加上(\d+)([KM])/i,
+                        type: 'adjust',
+                        adjustType: 'add'
+                    },
+                    {
+                        regex: /给(.+?)添加(\d+)([KM])/i,
+                        type: 'adjust',
+                        adjustType: 'add'
+                    },
+                    {
+                        regex: /从(.+?)减少(\d+)([KM])/i,
+                        type: 'adjust',
+                        adjustType: 'subtract'
+                    },
+                    {
+                        regex: /从(.+?)扣除(\d+)([KM])/i,
+                        type: 'adjust',
+                        adjustType: 'subtract'
+                    },
+                    {
+                        regex: /从(.+?)减去(\d+)([KM])/i,
+                        type: 'adjust',
+                        adjustType: 'subtract'
+                    }
                 ];
 
                 // Try to match transfer patterns
                 for (let pattern of transferPatterns) {
-                    const match = processedText.match(pattern);
+                    const match = text.match(pattern.regex);
                     if (match) {
+                        // Convert only the number part, keep player names as-is
+                        const convertedNumber = convertChineseNumbers(match[3]);
                         return {
                             type: 'transfer',
                             from: match[1].trim(),
                             to: match[2].trim(),
-                            amount: parseInt(match[3]),
+                            amount: parseInt(convertedNumber),
                             unit: match[4].toUpperCase(),
                             originalText: text
                         };
@@ -1766,18 +1809,16 @@
 
                 // Try to match adjustment patterns
                 for (let pattern of adjustPatterns) {
-                    const match = processedText.match(pattern);
+                    const match = text.match(pattern.regex);
                     if (match) {
-                        const isAdd = pattern.toString().includes('增加') ||
-                                     pattern.toString().includes('加上') ||
-                                     pattern.toString().includes('添加');
-
+                        // Convert only the number part, keep player name as-is
+                        const convertedNumber = convertChineseNumbers(match[2]);
                         return {
                             type: 'adjust',
                             player: match[1].trim(),
-                            amount: parseInt(match[2]),
+                            amount: parseInt(convertedNumber),
                             unit: match[3].toUpperCase(),
-                            adjustType: isAdd ? 'add' : 'subtract',
+                            adjustType: pattern.adjustType,
                             originalText: text
                         };
                     }
@@ -1880,11 +1921,70 @@
             }
 
             findPlayerByName(name) {
-                // Fuzzy matching for player names
                 const normalizedName = name.toLowerCase().trim();
-                return this.players.find(player =>
+
+                // Try exact match first
+                let player = this.players.find(player =>
                     player.name.toLowerCase().trim() === normalizedName
                 );
+
+                if (player) return player;
+
+                // Try partial match for English names (e.g., "Alice" matches "Alice Smith")
+                player = this.players.find(player =>
+                    player.name.toLowerCase().includes(normalizedName) ||
+                    normalizedName.includes(player.name.toLowerCase())
+                );
+
+                if (player) return player;
+
+                // Try phonetic matching for common English name variations
+                const nameVariations = this.getNameVariations(normalizedName);
+                for (let variation of nameVariations) {
+                    player = this.players.find(p =>
+                        p.name.toLowerCase().trim() === variation
+                    );
+                    if (player) return player;
+                }
+
+                return null;
+            }
+
+            getNameVariations(name) {
+                const variations = [name];
+
+                // Common English name variations
+                const commonVariations = {
+                    'alice': ['alice', 'alis', 'alyce'],
+                    'bob': ['bob', 'bobb', 'robert'],
+                    'charlie': ['charlie', 'charles', 'charley'],
+                    'david': ['david', 'dave', 'davey'],
+                    'emma': ['emma', 'em', 'emmy'],
+                    'frank': ['frank', 'frankie', 'francis'],
+                    'grace': ['grace', 'gracie'],
+                    'henry': ['henry', 'hank', 'harry'],
+                    'ivy': ['ivy', 'ivey'],
+                    'jack': ['jack', 'john', 'johnny'],
+                    'karen': ['karen', 'kari'],
+                    'lucy': ['lucy', 'lucie', 'louise'],
+                    'mike': ['mike', 'michael', 'micky'],
+                    'nancy': ['nancy', 'nance'],
+                    'oliver': ['oliver', 'olive', 'ollie'],
+                    'peter': ['peter', 'pete', 'petey'],
+                    'quinn': ['quinn', 'quin'],
+                    'rachel': ['rachel', 'rach', 'ray'],
+                    'sarah': ['sarah', 'sara', 'sally'],
+                    'tom': ['tom', 'thomas', 'tommy'],
+                    'victor': ['victor', 'vic', 'vicky'],
+                    'william': ['william', 'will', 'bill', 'billy'],
+                    'zoe': ['zoe', 'zoey', 'zooey']
+                };
+
+                if (commonVariations[name]) {
+                    variations.push(...commonVariations[name]);
+                }
+
+                return variations;
             }
 
             showVoiceSuccess(message) {
