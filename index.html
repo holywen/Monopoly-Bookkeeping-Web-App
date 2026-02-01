@@ -492,16 +492,31 @@
             align-items: center;
             justify-content: center;
             z-index: 10000;
+            padding: 20px;
         }
 
         .voice-confirm-content {
             background: var(--surface);
             padding: 24px;
             border-radius: var(--border-radius);
-            max-width: 350px;
-            width: 90%;
+            max-width: 400px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
             text-align: center;
             animation: slideIn 0.3s ease-out;
+        }
+
+        @media (max-width: 480px) {
+            .voice-confirm-content {
+                padding: 20px;
+                max-width: 95%;
+            }
+
+            .voice-confirm-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
         }
 
         @keyframes slideIn {
@@ -512,14 +527,51 @@
         .voice-confirm-title {
             font-size: 18px;
             font-weight: 600;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             color: var(--text-primary);
         }
 
-        .voice-confirm-text {
-            font-size: 16px;
-            margin-bottom: 20px;
+        .voice-confirm-type {
+            margin-bottom: 16px;
+        }
+
+        .voice-confirm-section {
+            margin-bottom: 16px;
+        }
+
+        .voice-confirm-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .voice-confirm-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .voice-confirm-group label {
+            font-size: 12px;
+            font-weight: 500;
             color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .voice-confirm-group input,
+        .voice-confirm-group select {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .voice-confirm-group input:focus,
+        .voice-confirm-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
         }
 
         .voice-confirm-buttons {
@@ -543,9 +595,17 @@
             color: white;
         }
 
+        .voice-confirm-btn.confirm:hover {
+            background: #45a049;
+        }
+
         .voice-confirm-btn.cancel {
             background: var(--secondary-color);
             color: white;
+        }
+
+        .voice-confirm-btn.cancel:hover {
+            background: #353535;
         }
     </style>
 </head>
@@ -807,9 +867,81 @@
     <div id="voiceConfirmDialog" class="voice-confirm-dialog hidden">
         <div class="voice-confirm-content">
             <div class="voice-confirm-title">确认语音命令</div>
-            <div class="voice-confirm-text" id="voiceConfirmText"></div>
+
+            <!-- Transaction Type Selection -->
+            <div class="voice-confirm-type" id="voiceConfirmType">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">交易类型</label>
+                <select id="voiceTransactionType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                    <option value="transfer">转账</option>
+                    <option value="adjust">余额调整</option>
+                </select>
+            </div>
+
+            <!-- Transfer Options -->
+            <div id="voiceTransferOptions" class="voice-confirm-section">
+                <div class="voice-confirm-row">
+                    <div class="voice-confirm-group">
+                        <label>发送方</label>
+                        <select id="voiceFromPlayer" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <option value="">选择玩家</option>
+                        </select>
+                    </div>
+                    <div class="voice-confirm-group">
+                        <label>接收方</label>
+                        <select id="voiceToPlayer" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <option value="">选择玩家</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adjust Options -->
+            <div id="voiceAdjustOptions" class="voice-confirm-section" style="display: none;">
+                <div class="voice-confirm-row">
+                    <div class="voice-confirm-group">
+                        <label>玩家</label>
+                        <select id="voiceAdjustPlayer" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <option value="">选择玩家</option>
+                        </select>
+                    </div>
+                    <div class="voice-confirm-group">
+                        <label>操作类型</label>
+                        <select id="voiceAdjustType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                            <option value="add">增加资金</option>
+                            <option value="subtract">减少资金</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amount Section -->
+            <div class="voice-confirm-row">
+                <div class="voice-confirm-group">
+                    <label>金额</label>
+                    <input type="number" id="voiceAmount" min="0" step="1" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                </div>
+                <div class="voice-confirm-group">
+                    <label>单位</label>
+                    <select id="voiceUnit" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+                        <option value="K">K (千)</option>
+                        <option value="M">M (百万)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="voice-confirm-group" style="grid-column: 1 / -1;">
+                <label>描述 (可选)</label>
+                <input type="text" id="voiceDescription" placeholder="输入交易描述" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px;">
+            </div>
+
+            <!-- Original Text Display -->
+            <div style="margin-top: 12px; padding: 8px; background: #f5f5f5; border-radius: 6px; font-size: 12px;">
+                <strong>原始语音:</strong> <span id="voiceOriginalText"></span>
+            </div>
+
             <div class="voice-confirm-buttons">
-                <button id="voiceConfirmBtn" class="voice-confirm-btn confirm">确认</button>
+                <button id="voiceConfirmBtn" class="voice-confirm-btn confirm">确认交易</button>
                 <button id="voiceCancelBtn" class="voice-confirm-btn cancel">取消</button>
             </div>
         </div>
@@ -1718,11 +1850,16 @@
 
                 // Confirmation dialog buttons
                 document.getElementById('voiceConfirmBtn').addEventListener('click', () => {
-                    this.executeVoiceCommand();
+                    this.executeVoiceCommandFromDialog();
                 });
 
                 document.getElementById('voiceCancelBtn').addEventListener('click', () => {
                     this.hideVoiceConfirmDialog();
+                });
+
+                // Transaction type change handler
+                document.getElementById('voiceTransactionType').addEventListener('change', () => {
+                    this.handleTransactionTypeChange();
                 });
             }
 
@@ -2086,23 +2223,73 @@
 
             showVoiceConfirmDialog(command) {
                 const dialog = document.getElementById('voiceConfirmDialog');
-                const textElement = document.getElementById('voiceConfirmText');
 
-                let confirmText = '';
+                // Store the command for later use
+                this.pendingVoiceCommand = command;
+
+                // Set original text
+                document.getElementById('voiceOriginalText').textContent = command.originalText || '';
+
+                // Populate form based on command type
                 if (command.type === 'transfer') {
-                    confirmText = `${command.from} 转给 ${command.to}<br><strong>${command.amount}${command.unit}</strong>`;
+                    document.getElementById('voiceTransactionType').value = 'transfer';
+                    document.getElementById('voiceTransferOptions').style.display = 'block';
+                    document.getElementById('voiceAdjustOptions').style.display = 'none';
+
+                    // Populate player selects
+                    this.populatePlayerSelect('voiceFromPlayer', command.from);
+                    this.populatePlayerSelect('voiceToPlayer', command.to);
                 } else if (command.type === 'adjust') {
-                    const action = command.adjustType === 'add' ? '增加' : '减少';
-                    confirmText = `${command.player} ${action}<br><strong>${command.amount}${command.unit}</strong>`;
+                    document.getElementById('voiceTransactionType').value = 'adjust';
+                    document.getElementById('voiceTransferOptions').style.display = 'none';
+                    document.getElementById('voiceAdjustOptions').style.display = 'block';
+
+                    // Populate player select and adjust type
+                    this.populatePlayerSelect('voiceAdjustPlayer', command.player);
+                    document.getElementById('voiceAdjustType').value = command.adjustType;
                 }
 
-                textElement.innerHTML = confirmText;
+                // Set amount and unit
+                document.getElementById('voiceAmount').value = command.amount || '';
+                document.getElementById('voiceUnit').value = command.unit || 'K';
+                document.getElementById('voiceDescription').value = command.description || '';
+
+                // Show dialog
                 dialog.classList.remove('hidden');
             }
 
             hideVoiceConfirmDialog() {
                 document.getElementById('voiceConfirmDialog').classList.add('hidden');
                 this.pendingVoiceCommand = null;
+            }
+
+            populatePlayerSelect(selectId, selectedValue) {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">选择玩家</option>';
+
+                this.players.forEach(player => {
+                    const option = document.createElement('option');
+                    option.value = player.id;
+                    option.textContent = player.name;
+                    if (selectedValue && (player.id === selectedValue || player.name === selectedValue)) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            }
+
+            handleTransactionTypeChange() {
+                const transactionType = document.getElementById('voiceTransactionType').value;
+                const transferOptions = document.getElementById('voiceTransferOptions');
+                const adjustOptions = document.getElementById('voiceAdjustOptions');
+
+                if (transactionType === 'transfer') {
+                    transferOptions.style.display = 'block';
+                    adjustOptions.style.display = 'none';
+                } else {
+                    transferOptions.style.display = 'none';
+                    adjustOptions.style.display = 'block';
+                }
             }
 
             executeVoiceCommand() {
@@ -2124,6 +2311,70 @@
                 }
 
                 this.hideVoiceConfirmDialog();
+            }
+
+            executeVoiceCommandFromDialog() {
+                // Get values from the dialog form
+                const transactionType = document.getElementById('voiceTransactionType').value;
+                const amount = parseFloat(document.getElementById('voiceAmount').value);
+                const unit = document.getElementById('voiceUnit').value;
+                const description = document.getElementById('voiceDescription').value;
+
+                // Validate amount
+                if (isNaN(amount) || amount <= 0) {
+                    this.showVoiceError('请输入有效的金额');
+                    return;
+                }
+
+                // Create command based on transaction type
+                let command;
+                if (transactionType === 'transfer') {
+                    const fromPlayerId = document.getElementById('voiceFromPlayer').value;
+                    const toPlayerId = document.getElementById('voiceToPlayer').value;
+
+                    if (!fromPlayerId || !toPlayerId) {
+                        this.showVoiceError('请选择发送方和接收方');
+                        return;
+                    }
+
+                    if (fromPlayerId === toPlayerId) {
+                        this.showVoiceError('不能转账给自己');
+                        return;
+                    }
+
+                    command = {
+                        type: 'transfer',
+                        from: fromPlayerId,
+                        to: toPlayerId,
+                        amount: amount,
+                        unit: unit,
+                        description: description || '语音转账',
+                        timestamp: new Date().toISOString(),
+                        originalText: this.pendingVoiceCommand?.originalText || ''
+                    };
+                } else if (transactionType === 'adjust') {
+                    const playerId = document.getElementById('voiceAdjustPlayer').value;
+                    const adjustType = document.getElementById('voiceAdjustType').value;
+
+                    if (!playerId) {
+                        this.showVoiceError('请选择玩家');
+                        return;
+                    }
+
+                    command = {
+                        type: 'adjust',
+                        player: playerId,
+                        amount: amount,
+                        unit: unit,
+                        adjustType: adjustType,
+                        description: description || '语音调整',
+                        timestamp: new Date().toISOString(),
+                        originalText: this.pendingVoiceCommand?.originalText || ''
+                    };
+                }
+
+                // Execute the transaction
+                this.executeVoiceCommand(command);
             }
 
             executeVoiceTransfer(command) {
