@@ -1815,11 +1815,14 @@
 
                     try {
                         const correctedTranscript = await this.correctWithLLM(transcript);
+                        console.log(`LLM correction: "${transcript}" -> "${correctedTranscript}"`);
                         this.showInterimResult(`AI纠正: "${correctedTranscript}"`);
 
                         // Try parsing the corrected version
                         const correctedCommand = this.parseVoiceCommand(correctedTranscript);
                         if (correctedCommand) {
+                            console.log('Parsed corrected command:', correctedCommand);
+
                             const validationError = this.validateVoiceCommand(correctedCommand);
                             if (validationError) {
                                 this.showVoiceError(validationError);
@@ -1829,6 +1832,18 @@
                             this.pendingVoiceCommand = correctedCommand;
                             this.showVoiceConfirmDialog(correctedCommand);
                             return;
+                        } else {
+                            console.log('Failed to parse corrected command, trying direct parsing...');
+                            // Try direct parsing as fallback
+                            const fallbackCommand = this.parseVoiceCommand(correctedTranscript);
+                            if (fallbackCommand) {
+                                const validationError = this.validateVoiceCommand(fallbackCommand);
+                                if (!validationError) {
+                                    this.pendingVoiceCommand = fallbackCommand;
+                                    this.showVoiceConfirmDialog(fallbackCommand);
+                                    return;
+                                }
+                            }
                         }
                     } catch (error) {
                         console.error('LLM correction failed:', error);
@@ -1905,65 +1920,95 @@
                 const cleanedText = this.preprocessVoiceText(text);
                 console.log(`Original: "${text}" -> Cleaned: "${cleanedText}"`);
 
-                // Chinese number mapping
+                // Enhanced Chinese number mapping with larger numbers
                 const chineseNumbers = {
                     '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
                     '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
                     '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15,
                     '二十': 20, '三十': 30, '四十': 40, '五十': 50,
                     '六十': 60, '七十': 70, '八十': 80, '九十': 90,
-                    '一百': 100, '一百五': 150, '二百': 200, '三百': 300,
-                    '四百': 400, '五百': 500, '六百': 600, '七百': 700,
-                    '八百': 800, '九百': 900, '一千': 1000
+                    '一百': 100, '一千': 1000, '一万': 10000,
+                    '十万': 100000, '百万': 1000000,
+                    '一百万': 1000000, '二百万': 2000000,
+                    '一千万': 10000000
                 };
 
                 // Helper function to convert Chinese numbers in a string
                 const convertChineseNumbers = (str) => {
                     let converted = str;
-                    Object.entries(chineseNumbers).forEach(([chinese, arabic]) => {
-                        converted = converted.replace(new RegExp(chinese, 'g'), arabic);
+
+                    // Handle compound numbers first
+                    const compoundNumbers = {
+                        '十万': 100000,
+                        '百万': 1000000,
+                        '一百万': 1000000,
+                        '二百万': 2000000,
+                        '三百万': 3000000,
+                        '五百万': 5000000,
+                        '一千万': 10000000
+                    };
+
+                    // Replace compound numbers first
+                    Object.entries(compoundNumbers).forEach(([chinese, arabic]) => {
+                        converted = converted.replace(new RegExp(chinese, 'g'), arabic.toString());
                     });
+
+                    // Then replace basic numbers
+                    Object.entries(chineseNumbers).forEach(([chinese, arabic]) => {
+                        converted = converted.replace(new RegExp(chinese, 'g'), arabic.toString());
+                    });
+
                     return converted;
+                };
+
+                // Helper function to extract and convert numbers from text
+                const extractAndConvertNumber = (text) => {
+                    // Match number patterns (including Chinese numbers)
+                    const numberMatch = text.match(/(\d+(?:\d+)?|[零一二三四五六七八九十百千万]+(?:\s*[零一二三四五六七八九十百千万]+)*)/);
+                    if (!numberMatch) return null;
+
+                    const numberStr = numberMatch[0];
+                    const converted = convertChineseNumbers(numberStr);
+                    return parseInt(converted);
                 };
 
                 // Enhanced patterns for transfer commands
                 const transferPatterns = [
-                    // Chinese patterns
-                    { regex: /(.+?)转给(.+?)(\d+)([KM])/i, type: 'transfer' },
-                    { regex: /(.+?)给(.+?)转(\d+)([KM])/i, type: 'transfer' },
-                    { regex: /(.+?)支付给(.+?)(\d+)([KM])/i, type: 'transfer' },
-                    { regex: /(.+?)转账给(.+?)(\d+)([KM])/i, type: 'transfer' },
+                    // Chinese patterns - more flexible number matching
+                    { regex: /(.+?)转给(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
+                    { regex: /(.+?)给(.+?)转\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
+                    { regex: /(.+?)支付给(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
+                    { regex: /(.+?)转账给(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
                     // Mixed patterns - more flexible
-                    { regex: /(.+?)transfer\s*to\s*(.+?)(\d+)([KM])/i, type: 'transfer' },
-                    { regex: /(.+?)send\s*to\s*(.+?)(\d+)([KM])/i, type: 'transfer' },
-                    { regex: /(.+?)给(.+?)(\d+)([KM])/i, type: 'transfer' }, // Simplified
+                    { regex: /(.+?)transfer\s*to\s*(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
+                    { regex: /(.+?)send\s*to\s*(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
+                    { regex: /(.+?)给(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' }, // Simplified
                     // English patterns
-                    { regex: /(.+?)transfer\s*(.+?)\s*(\d+)([KM])/i, type: 'transfer' },
-                    { regex: /(.+?)send\s*(.+?)\s*(\d+)([KM])/i, type: 'transfer' }
+                    { regex: /(.+?)transfer\s*(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' },
+                    { regex: /(.+?)send\s*(.+?)\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'transfer' }
                 ];
 
                 // Enhanced patterns for adjustment commands
                 const adjustPatterns = [
                     // Chinese patterns
-                    { regex: /给(.+?)增加(\d+)([KM])/i, type: 'adjust', adjustType: 'add' },
-                    { regex: /给(.+?)加上(\d+)([KM])/i, type: 'adjust', adjustType: 'add' },
-                    { regex: /给(.+?)添加(\d+)([KM])/i, type: 'adjust', adjustType: 'add' },
-                    { regex: /从(.+?)减少(\d+)([KM])/i, type: 'adjust', adjustType: 'subtract' },
-                    { regex: /从(.+?)扣除(\d+)([KM])/i, type: 'adjust', adjustType: 'subtract' },
-                    { regex: /从(.+?)减去(\d+)([KM])/i, type: 'adjust', adjustType: 'subtract' },
+                    { regex: /给(.+?)增加\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'add' },
+                    { regex: /给(.+?)加上\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'add' },
+                    { regex: /给(.+?)添加\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'add' },
+                    { regex: /从(.+?)减少\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'subtract' },
+                    { regex: /从(.+?)扣除\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'subtract' },
+                    { regex: /从(.+?)减去\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'subtract' },
                     // Mixed/English patterns
-                    { regex: /(.+?)add\s*(\d+)([KM])/i, type: 'adjust', adjustType: 'add' },
-                    { regex: /(.+?)give\s*(\d+)([KM])/i, type: 'adjust', adjustType: 'add' },
-                    { regex: /(.+?)subtract\s*(\d+)([KM])/i, type: 'adjust', adjustType: 'subtract' },
-                    { regex: /(.+?)take\s*(\d+)([KM])/i, type: 'adjust', adjustType: 'subtract' }
+                    { regex: /(.+?)add\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'add' },
+                    { regex: /(.+?)give\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'add' },
+                    { regex: /(.+?)subtract\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'subtract' },
+                    { regex: /(.+?)take\s*([零一二三四五六七八九十百千万\d]+)\s*([KM])/i, type: 'adjust', adjustType: 'subtract' }
                 ];
 
                 // Try to match transfer patterns
                 for (let pattern of transferPatterns) {
                     const match = cleanedText.match(pattern.regex);
                     if (match) {
-                        const convertedNumber = convertChineseNumbers(match[3]);
-                        const amount = parseInt(convertedNumber);
+                        const amount = extractAndConvertNumber(match[3]);
 
                         if (isNaN(amount) || amount <= 0) continue;
 
@@ -1982,8 +2027,7 @@
                 for (let pattern of adjustPatterns) {
                     const match = cleanedText.match(pattern.regex);
                     if (match) {
-                        const convertedNumber = convertChineseNumbers(match[2]);
-                        const amount = parseInt(convertedNumber);
+                        const amount = extractAndConvertNumber(match[2]);
 
                         if (isNaN(amount) || amount <= 0) continue;
 
@@ -2231,18 +2275,72 @@
 2. 中英文混合表达
 3. 数字识别错误
 4. 语法结构问题
+5. 中文数字转换 (如: 十万→100k, 一百万→1M)
 
 支持的命令格式:
 - [玩家A]转给[玩家B][金额][单位] (如: Eason转给Holy 100K, Eason转给Holy 1M)
 - 给[玩家]增加[金额][单位] (如: 给Eason增加100K, 给Eason增加 2M)
 - 从[玩家]减少[金额][单位] (如: 从Eason减少100K, 从Eason减少 1M)
-- 玩家必须是匹配来自“当前玩家”中的名字
-- 单位必须是k或者m, 大小写都可以,如果用户说了中文的“一百万“，那么换算成 "1 M", 比如用户说了中文的 十万， 那么换算成 "100 k"
+- 玩家必须是匹配来自"当前玩家"中的名字
+- 单位必须是k或者m, 大小写都可以
 - 金额必须是阿拉伯数字， 如 100K, 2M等等
 
 只返回纠正后的命令，不要解释。如果无法纠正，返回原始文本。`;
 
-                return this.callLLMAPI(prompt);
+                const llmResponse = await this.callLLMAPI(prompt);
+
+                // 清理LLM返回的内容，提取实际命令
+                return this.cleanLLMResponse(llmResponse);
+            }
+
+            cleanLLMResponse(response) {
+                if (!response || typeof response !== 'string') {
+                    return response;
+                }
+
+                let cleaned = response.trim();
+
+                // 移除常见的前缀文字
+                const prefixes = [
+                    '纠正后的命令:',
+                    '纠正后:',
+                    '命令:',
+                    '结果:',
+                    '输出:',
+                    'Answer:',
+                    'Response:',
+                    '纠正后的命令：',
+                    '纠正后：',
+                    '命令：',
+                    '结果：',
+                    '输出：',
+                    '回答：',
+                    '响应：'
+                ];
+
+                for (const prefix of prefixes) {
+                    if (cleaned.startsWith(prefix)) {
+                        cleaned = cleaned.substring(prefix.length).trim();
+                        break;
+                    }
+                }
+
+                // 移除引号
+                cleaned = cleaned.replace(/^["']|["']$/g, '');
+
+                // 移除可能的解释文字（在命令之后的）
+                const explanationPatterns = [
+                    /\s*[-–—]\s*.*$/,  // 破折号后的解释
+                    /\s*[\(\[].*?[\)\]]$/,  // 括号内的内容
+                    /\s*说明[:：].*$/,    // 说明后的内容
+                    /\s*解释[:：].*$/,    // 解释后的内容
+                ];
+
+                for (const pattern of explanationPatterns) {
+                    cleaned = cleaned.replace(pattern, '');
+                }
+
+                return cleaned.trim();
             }
 
             async callLLMAPI(prompt) {
@@ -2307,7 +2405,7 @@
 
                         let corrected = transcriptMatch[1];
 
-                        // Basic name corrections
+                        // Name corrections
                         const nameCorrections = {
                             '伊森': 'Eason',
                             '一森': 'Eason',
@@ -2323,6 +2421,23 @@
 
                         Object.entries(nameCorrections).forEach(([wrong, correct]) => {
                             corrected = corrected.replace(new RegExp(wrong, 'gi'), correct);
+                        });
+
+                        // Chinese number to Arabic number conversion
+                        const chineseNumbers = {
+                            '十万': '100k',
+                            '百万': '1m',
+                            '一百万': '1m',
+                            '五百万': '5m',
+                            '十万': '100k',
+                            '二十万': '200k',
+                            '五十万': '500k',
+                            '一百万': '1000k',
+                            '二百万': '2000k'
+                        };
+
+                        Object.entries(chineseNumbers).forEach(([chinese, arabic]) => {
+                            corrected = corrected.replace(new RegExp(chinese, 'gi'), arabic);
                         });
 
                         // Common pattern corrections
