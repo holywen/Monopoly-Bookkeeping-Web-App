@@ -301,42 +301,7 @@
             color: var(--error-color);
         }
 
-        .transaction-form {
-            margin-bottom: 16px;
-        }
-
-        .transaction-type-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .type-btn {
-            padding: 8px;
-            border: 2px solid #e0e0e0;
-            background: var(--surface);
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 12px;
-            text-align: center;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .type-btn:hover {
-            border-color: var(--primary-color);
-        }
-
-        .type-btn.active {
-            border-color: var(--primary-color);
-            background: var(--primary-color);
-            color: white;
-        }
-
+        
         .history-list {
             max-height: 300px;
             overflow-y: auto;
@@ -670,81 +635,76 @@
         <div class="screen" id="screen2">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h2 style="margin: 0;">Game Actions</h2>
+                    <h2 style="margin: 0;">🎮 游戏控制</h2>
                     <div>
                         <button class="btn btn-secondary" onclick="game.restartGame()" style="margin-right: 8px; padding: 8px 16px; font-size: 14px;">Restart Game</button>
                         <button class="btn btn-error" onclick="game.endGame()" style="padding: 8px 16px; font-size: 14px;">End Game</button>
                     </div>
                 </div>
 
-                <div class="transaction-form">
-                    <div class="transaction-type-selector">
-                        <button class="type-btn active" data-type="one-to-one">1→1</button>
-                        <button class="type-btn" data-type="one-to-many">1→Many</button>
-                        <button class="type-btn" data-type="many-to-one">Many→1</button>
-                        <button class="type-btn" data-type="adjust">Adjust</button>
-                    </div>
+                <!-- Voice Control Panel -->
+                <div class="card voice-control">
+                    <h3 style="margin-bottom: 12px;">🎤 语音交易 (唯一交易方式)</h3>
 
-                    <div class="input-group" id="fromPlayerGroup">
-                        <label for="fromPlayer">From/Player</label>
-                        <select id="fromPlayer">
-                            <option value="">Select player</option>
+                    <!-- Language Mode Selection -->
+                    <div style="margin-bottom: 12px;">
+                        <label style="color: rgba(255,255,255,0.8); font-size: 14px; margin-bottom: 4px; display: block;">识别语言模式</label>
+                        <select id="voiceLanguageMode" style="width: 100%; padding: 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.1); color: white;">
+                            <option value="zh-CN">中文优先 (推荐)</option>
+                            <option value="en-US">英文优先</option>
+                            <option value="auto">自动检测</option>
                         </select>
                     </div>
 
-                    <div class="input-group" id="toPlayerGroup">
-                        <label for="toPlayer">To</label>
-                        <select id="toPlayer">
-                            <option value="">Select player</option>
-                        </select>
-                    </div>
+                    <!-- LLM Configuration -->
+                    <div style="margin-bottom: 12px;">
+                        <label style="color: rgba(255,255,255,0.8); font-size: 14px; margin-bottom: 4px; display: block;">
+                            🤖 AI智能纠错
+                            <span id="llmStatus" style="font-size: 12px; margin-left: 8px; color: #ff9800;">● 未配置</span>
+                        </label>
 
-                    <div class="input-group" id="adjustPlayerGroup" style="display: none;">
-                        <label for="adjustPlayer">Player to Adjust</label>
-                        <select id="adjustPlayer">
-                            <option value="">Select player</option>
+                        <!-- LLM Provider Selection -->
+                        <select id="llmProvider" style="width: 100%; padding: 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.1); color: white; margin-bottom: 8px;">
+                            <option value="mock">本地模拟 (无需API)</option>
+                            <option value="openrouter">OpenRouter</option>
+                            <option value="anthropic">Anthropic Claude</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="nvidia">NVIDIA Build (NIM)</option>
                         </select>
-                    </div>
 
-                    <div class="input-group" id="toManyGroup" style="display: none;">
-                        <label>Recipients (select multiple)</label>
-                        <div id="toManyCheckboxes">
-                            <!-- Checkboxes will be populated -->
+                        <!-- API Key Input (hidden for mock mode) -->
+                        <div id="apiKeySection" style="display: none;">
+                            <input type="password" id="llmApiKey" placeholder="输入API密钥" style="width: 100%; padding: 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.1); color: white; margin-bottom: 8px;">
+                            <button id="testLlmBtn" style="width: 100%; padding: 6px; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; background: rgba(255,255,255,0.2); color: white; font-size: 12px;">测试连接</button>
                         </div>
-                    </div>
 
-                    <div class="input-group" id="fromManyGroup" style="display: none;">
-                        <label>Payers (select multiple)</label>
-                        <div id="fromManyCheckboxes">
-                            <!-- Checkboxes will be populated -->
-                        </div>
-                    </div>
-
-                    <div class="input-group" id="adjustTypeGroup" style="display: none;">
-                        <label>Adjustment Type</label>
-                        <select id="adjustType">
-                            <option value="add">Add Money</option>
-                            <option value="subtract">Subtract Money</option>
+                        <!-- Enable/Disable Toggle -->
+                        <select id="llmCorrectionMode" style="width: 100%; padding: 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.1); color: white; margin-top: 8px;">
+                            <option value="enabled">开启纠错</option>
+                            <option value="disabled">关闭纠错</option>
                         </select>
                     </div>
 
-                    <div class="input-group">
-                        <label>Amount ($)</label>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="number" id="amount" placeholder="0" min="0" step="1" style="flex: 1;">
-                            <select id="amountUnit" style="flex: 0 0 80px;">
-                                <option value="K" selected>K</option>
-                                <option value="M">M</option>
-                            </select>
-                        </div>
+                    <button id="voiceBtn" class="voice-btn">
+                        <span class="mic-icon">🎤</span>
+                        <span class="voice-text">按住说话</span>
+                    </button>
+                    <div id="voiceResult" class="voice-result">
+                        <span style="color: rgba(255,255,255,0.6);">按住按钮说出交易命令</span>
                     </div>
-
-                    <div class="input-group">
-                        <label for="description">Description (optional)</label>
-                        <input type="text" id="description" placeholder="e.g., Rent for Boardwalk">
+                    <div class="voice-commands">
+                        <h4>支持的命令：</h4>
+                        <ul>
+                            <li>• "玩家1转给玩家2十六万"</li>
+                            <li>• "给玩家1增加五十万"</li>
+                            <li>• "从玩家2减少二十万"</li>
+                            <li>• "Eason转给Holy 100K"</li>
+                            <li>• "Vivian转给Justin 50K"</li>
+                            <li>• "给Resin增加200K"</li>
+                            <li>• "从Eason减少100K"</li>
+                            <li>• "Eason transfer to Holy 100K" (英文模式)</li>
+                        </ul>
                     </div>
-
-                    <button class="btn btn-success" id="addTransactionBtn">Add Transaction</button>
                 </div>
             </div>
 
@@ -806,17 +766,18 @@
                     <span style="color: rgba(255,255,255,0.6);">按住按钮说出转账命令</span>
                 </div>
                 <div class="voice-commands">
-                    <h4>支持的命令：</h4>
+                    <h4>语音命令示例：</h4>
                     <ul>
-                        <li>• "玩家1转给玩家2十六万"</li>
-                        <li>• "给玩家1增加五十万"</li>
-                        <li>• "从玩家2减少二十万"</li>
-                        <li>• "Eason转给Holy 100K"</li>
-                        <li>• "Vivian转给Justin 50K"</li>
-                        <li>• "给Resin增加200K"</li>
-                        <li>• "从Eason减少100K"</li>
+                        <li>• "给Holy增加100K"</li>
+                        <li>• "Eason转给Vivian 50K"</li>
+                        <li>• "从Justin减少200K"</li>
+                        <li>• "给Resin增加一百万"</li>
+                        <li>• "Vivian转给Eason 2M"</li>
                         <li>• "Eason transfer to Holy 100K" (英文模式)</li>
                     </ul>
+                    <p style="margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.7);">
+                        💡 所有交易都必须通过语音完成
+                    </p>
                 </div>
             </div>
         </div>
@@ -954,7 +915,6 @@
                 this.players = [];
                 this.transactions = [];
                 this.currentScreen = 1;
-                this.transactionType = 'one-to-one';
                 this.loadState();
                 this.initializeTokens();
                 this.bindEvents();
@@ -1006,19 +966,7 @@
                 document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
                 document.getElementById('resetPlayersBtn').addEventListener('click', () => this.resetPlayers());
 
-                // Transaction management
-                document.getElementById('addTransactionBtn').addEventListener('click', () => this.addTransaction());
-
-                // Transaction type switching
-                document.querySelectorAll('.type-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        this.transactionType = btn.dataset.type;
-                        this.updateTransactionForm();
-                    });
-                });
-
+                
                 // Navigation
                 document.querySelectorAll('.nav-dot').forEach(dot => {
                     dot.addEventListener('click', () => {
@@ -1232,201 +1180,8 @@
                 }
             }
 
-            updateTransactionForm() {
-                const fromPlayerGroup = document.getElementById('fromPlayerGroup');
-                const toPlayerGroup = document.getElementById('toPlayerGroup');
-                const toManyGroup = document.getElementById('toManyGroup');
-                const fromManyGroup = document.getElementById('fromManyGroup');
-                const adjustPlayerGroup = document.getElementById('adjustPlayerGroup');
-                const adjustTypeGroup = document.getElementById('adjustTypeGroup');
-                const fromPlayer = document.getElementById('fromPlayer');
-                const toPlayer = document.getElementById('toPlayer');
-
-                // Hide all optional groups first
-                fromPlayerGroup.style.display = 'none';
-                toPlayerGroup.style.display = 'none';
-                toManyGroup.style.display = 'none';
-                fromManyGroup.style.display = 'none';
-                adjustPlayerGroup.style.display = 'none';
-                adjustTypeGroup.style.display = 'none';
-
-                // Update player selects
-                this.updatePlayerSelects();
-
-                switch (this.transactionType) {
-                    case 'one-to-one':
-                        fromPlayerGroup.style.display = 'block';
-                        toPlayerGroup.style.display = 'block';
-                        break;
-                    case 'one-to-many':
-                        fromPlayerGroup.style.display = 'block';
-                        toManyGroup.style.display = 'block';
-                        this.renderToManyCheckboxes();
-                        break;
-                    case 'many-to-one':
-                        fromManyGroup.style.display = 'block';
-                        toPlayerGroup.style.display = 'block';
-                        this.renderFromManyCheckboxes();
-                        break;
-                    case 'adjust':
-                        adjustPlayerGroup.style.display = 'block';
-                        adjustTypeGroup.style.display = 'block';
-                        this.updateAdjustPlayerSelect();
-                        break;
-                }
-            }
-
-            updatePlayerSelects() {
-                const fromSelect = document.getElementById('fromPlayer');
-                const toSelect = document.getElementById('toPlayer');
-
-                const playerOptions = this.players.map(p =>
-                    `<option value="${p.id}">${p.name}</option>`
-                ).join('');
-
-                fromSelect.innerHTML = '<option value="">Select player</option>' + playerOptions;
-                toSelect.innerHTML = '<option value="">Select player</option>' + playerOptions;
-            }
-
-            renderToManyCheckboxes() {
-                const container = document.getElementById('toManyCheckboxes');
-                container.innerHTML = this.players.map(p => `
-                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <input type="checkbox" value="${p.id}" style="margin-right: 8px;">
-                        <span>${p.name} (${p.token.name})</span>
-                    </label>
-                `).join('');
-            }
-
-            renderFromManyCheckboxes() {
-                const container = document.getElementById('fromManyCheckboxes');
-                container.innerHTML = this.players.map(p => `
-                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <input type="checkbox" value="${p.id}" style="margin-right: 8px;">
-                        <span>${p.name} (${p.token.name})</span>
-                    </label>
-                `).join('');
-            }
-
-            updateAdjustPlayerSelect() {
-                const adjustSelect = document.getElementById('adjustPlayer');
-                const playerOptions = this.players.map(p =>
-                    `<option value="${p.id}">${p.name}</option>`
-                ).join('');
-                adjustSelect.innerHTML = '<option value="">Select player</option>' + playerOptions;
-            }
-
-            addTransaction() {
-                const amountInput = document.getElementById('amount');
-                const amountUnitSelect = document.getElementById('amountUnit');
-                const rawAmount = parseFloat(amountInput.value);
-                const amountUnit = amountUnitSelect ? amountUnitSelect.value : 'K';
-                const amount = this.parseAmount(rawAmount, amountUnit);
-                const description = document.getElementById('description').value.trim();
-
-                if (isNaN(amount) || amount <= 0) {
-                    alert('Please enter a valid amount');
-                    return;
-                }
-
-                let from = [], to = [];
-
-                switch (this.transactionType) {
-                    case 'one-to-one':
-                        const fromSelect = document.getElementById('fromPlayer');
-                        const toSelect = document.getElementById('toPlayer');
-
-                        if (!fromSelect.value || !toSelect.value) {
-                            alert('Please select both players');
-                            return;
-                        }
-
-                        if (fromSelect.value === toSelect.value) {
-                            alert('Cannot transfer to the same player');
-                            return;
-                        }
-
-                        from = [fromSelect.value];
-                        to = [toSelect.value];
-                        break;
-
-                    case 'one-to-many':
-                        const fromManySelect = document.getElementById('fromPlayer');
-                        const toManyCheckboxes = document.querySelectorAll('#toManyCheckboxes input:checked');
-
-                        if (!fromManySelect.value || toManyCheckboxes.length === 0) {
-                            alert('Please select sender and at least one recipient');
-                            return;
-                        }
-
-                        if (toManyCheckboxes.length === 1 && toManyCheckboxes[0].value === fromManySelect.value) {
-                            alert('Cannot transfer to the same player');
-                            return;
-                        }
-
-                        from = [fromManySelect.value];
-                        to = Array.from(toManyCheckboxes).map(cb => cb.value);
-                        break;
-
-                    case 'many-to-one':
-                        const fromManyCheckboxes = document.querySelectorAll('#fromManyCheckboxes input:checked');
-                        const toManySelect = document.getElementById('toPlayer');
-
-                        if (fromManyCheckboxes.length === 0 || !toManySelect.value) {
-                            alert('Please select at least one payer and a recipient');
-                            return;
-                        }
-
-                        from = Array.from(fromManyCheckboxes).map(cb => cb.value);
-                        to = [toManySelect.value];
-                        break;
-
-                    case 'adjust':
-                        const adjustPlayer = document.getElementById('adjustPlayer');
-                        const adjustType = document.getElementById('adjustType');
-
-                        if (!adjustPlayer.value) {
-                            alert('Please select a player to adjust');
-                            return;
-                        }
-
-                        if (adjustType.value === 'add') {
-                            from = ['bank'];
-                            to = [adjustPlayer.value];
-                        } else {
-                            from = [adjustPlayer.value];
-                            to = ['bank'];
-                        }
-                        break;
-                }
-
-                // Process transaction
-                const transaction = {
-                    id: Date.now().toString(),
-                    type: this.transactionType,
-                    from: from,
-                    to: to,
-                    amount: amount,
-                    description: description || 'Transaction',
-                    timestamp: new Date().toISOString()
-                };
-
-                // Update balances
-                this.processTransaction(transaction);
-                this.transactions.push(transaction);
-                this.saveState();
-                this.updateUI();
-
-                // Reset form
-                document.getElementById('amount').value = '';
-                document.getElementById('description').value = '';
-                document.getElementById('fromPlayer').value = '';
-                document.getElementById('toPlayer').value = '';
-                document.getElementById('adjustPlayer').value = '';
-                document.getElementById('adjustType').value = 'add';
-                document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-            }
-
+            
+            
             processTransaction(transaction) {
                 const amountPerPerson = transaction.type === 'one-to-many'
                     ? transaction.amount / transaction.to.length
