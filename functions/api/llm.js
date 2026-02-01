@@ -1,59 +1,16 @@
-// Cloudflare Worker for LLM API Proxy
-// 解决CORS问题并保护API密钥
+// Cloudflare Pages Function for LLM API Proxy
+// 替代Cloudflare Workers的简单方案
 
-export default {
-  async fetch(request, env) {
-    // 处理CORS预检请求
-    if (request.method === 'OPTIONS') {
-      return handleCORS();
-    }
-
-    const url = new URL(request.url);
-
-    // 只处理 /api/llm 路径
-    if (url.pathname === '/api/llm') {
-      return handleLLMRequest(request);
-    }
-
-    // 健康检查端点
-    if (url.pathname === '/api/health') {
-      return new Response(JSON.stringify({ status: 'ok' }), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-    }
-
-    return new Response('Not Found', { status: 404 });
-  }
-};
-
-// 处理CORS
-function handleCORS() {
-  return new Response(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    }
-  });
-}
-
-// 处理LLM请求
-async function handleLLMRequest(request) {
+export async function onRequestPost(context) {
   try {
-    const { provider, apiKey, prompt, model, max_tokens = 100, temperature = 0.1 } = await request.json();
+    const { provider, apiKey, prompt, model, max_tokens = 100, temperature = 0.1 } = await context.request.json();
 
     if (!provider || !apiKey || !prompt) {
-      return new Response(JSON.stringify({
+      return Response.json({
         error: 'Missing required fields: provider, apiKey, prompt'
-      }), {
+      }, {
         status: 400,
         headers: {
-          'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         }
       });
@@ -124,12 +81,11 @@ async function handleLLMRequest(request) {
         break;
 
       default:
-        return new Response(JSON.stringify({
+        return Response.json({
           error: `Unsupported provider: ${provider}`
-        }), {
+        }, {
           status: 400,
           headers: {
-            'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
           }
         });
@@ -146,10 +102,10 @@ async function handleLLMRequest(request) {
       const errorText = await response.text();
       console.error(`LLM API error for ${provider}:`, response.status, errorText);
 
-      return new Response(JSON.stringify({
+      return Response.json({
         error: `${provider} API error: ${response.status}`,
         details: errorText
-      }), {
+      }, {
         status: response.status,
         headers: {
           'Content-Type': 'application/json',
@@ -168,11 +124,11 @@ async function handleLLMRequest(request) {
       content = result.choices?.[0]?.message?.content || '';
     }
 
-    return new Response(JSON.stringify({
+    return Response.json({
       content: content,
       provider: provider,
       usage: result.usage || null
-    }), {
+    }, {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
@@ -180,12 +136,12 @@ async function handleLLMRequest(request) {
     });
 
   } catch (error) {
-    console.error('Worker error:', error);
+    console.error('Function error:', error);
 
-    return new Response(JSON.stringify({
+    return Response.json({
       error: 'Internal server error',
       details: error.message
-    }), {
+    }, {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
@@ -193,4 +149,16 @@ async function handleLLMRequest(request) {
       }
     });
   }
+}
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+    }
+  });
 }

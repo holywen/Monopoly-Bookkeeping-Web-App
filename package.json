@@ -1,1 +1,0 @@
-{"name": "monopoly-bookkeeping", "version": "1.0.0", "description": "Monopoly Bookkeeping Web App - Mobile PWA for Monopoly game bookkeeping", "scripts": {"build": "echo 'Static site build complete'"}, "keywords": ["monopoly", "bookkeeping", "pwa", "mobile", "game", "offline"], "author": "Your Name", "license": "MIT"}
