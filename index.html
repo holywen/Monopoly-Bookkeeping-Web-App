@@ -12,6 +12,13 @@
         <div id="setup-screen" class="screen active">
             <h1>大富翁记账</h1>
 
+            <div class="language-toggle-container">
+                <div class="language-toggle">
+                    <button id="lang-zh-btn-setup" class="lang-btn active">中文</button>
+                    <button id="lang-en-btn-setup" class="lang-btn">EN</button>
+                </div>
+            </div>
+
             <div class="setup-section">
                 <h3>初始金额设置</h3>
                 <div class="initial-amount-input">
@@ -47,9 +54,15 @@
             <div class="game-header">
                 <h2>大富翁记账</h2>
                 <div class="game-controls">
+                    <div class="language-toggle-container">
+                        <div class="language-toggle">
+                            <button id="lang-zh-btn" class="lang-btn active">中文</button>
+                            <button id="lang-en-btn" class="lang-btn">EN</button>
+                        </div>
+                    </div>
                     <button id="add-player-game-btn">添加玩家</button>
                     <button id="restart-game-btn">重新开始</button>
-                                    </div>
+                </div>
             </div>
 
             <div id="players-grid" class="players-grid"></div>
@@ -78,6 +91,7 @@
         </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -12,10 +12,87 @@ class MonopolyBookkeeper {
     }
 
     init() {
+        this.initI18n();
         this.setupEventListeners();
         this.showSetupScreen();
         // 在事件监听器设置完成后，再恢复保存的状态
         this.restoreUIToggleStates();
+    }
+
+    initI18n() {
+        // 根据浏览器语言设置默认语言
+        const browserLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+        this.currentLang = browserLang;
+        // 延迟调用 updateUILanguage，确保DOM已加载
+        setTimeout(() => this.updateUILanguage(), 0);
+    }
+
+    updateUILanguage() {
+        const elements = {
+            'app-title': document.querySelector('h1'),
+            'setup-section h3': document.querySelectorAll('.setup-section h3'),
+            'start-game-btn': document.getElementById('start-game-btn'),
+            'add-player-btn': document.getElementById('add-player-btn'),
+            'new-player-name': document.getElementById('new-player-name'),
+            'clear-data-btn': document.getElementById('clear-data-btn')
+        };
+
+        // 更新文本
+        elements['app-title'].textContent = i18n[this.currentLang].appTitle;
+        document.title = i18n[this.currentLang].appTitle;
+
+        // 更新 setup-section 的 h3 文本
+        const h3Keys = ['initialAmount', 'playerManagement', 'dataManagement'];
+        elements['setup-section h3'].forEach((h3, index) => {
+            if (h3Keys[index]) {
+                h3.textContent = i18n[this.currentLang].setupSection[h3Keys[index]];
+            }
+        });
+
+        // 更新设置界面按钮文本
+        elements['start-game-btn'].textContent = i18n[this.currentLang].buttons.startGame;
+        elements['add-player-btn'].textContent = i18n[this.currentLang].buttons.addPlayer;
+        elements['clear-data-btn'].textContent = i18n[this.currentLang].buttons.clearData;
+
+        // 更新占位符
+        const nameInput = document.getElementById('new-player-name');
+        if (nameInput) {
+            nameInput.placeholder = i18n[this.currentLang].placeholders.playerName;
+        }
+
+        // 更新游戏界面文本
+        this.updateGameInterfaceText();
+    }
+
+    updateGameInterfaceText() {
+        // 更新游戏界面的标题
+        const gameTitle = document.querySelector('#game-screen h2');
+        if (gameTitle) {
+            gameTitle.textContent = i18n[this.currentLang].appTitle;
+        }
+
+        // 更新游戏界面按钮文本
+        const addPlayerGameBtn = document.getElementById('add-player-game-btn');
+        if (addPlayerGameBtn) {
+            addPlayerGameBtn.textContent = i18n[this.currentLang].buttons.addPlayerGame;
+        }
+
+        const restartGameBtn = document.getElementById('restart-game-btn');
+        if (restartGameBtn) {
+            restartGameBtn.textContent = i18n[this.currentLang].buttons.restartGame;
+        }
+
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        if (clearHistoryBtn) {
+            clearHistoryBtn.textContent = i18n[this.currentLang].buttons.clearHistory;
+            clearHistoryBtn.title = i18n[this.currentLang].buttons.clearHistory;
+        }
+
+        // 更新操作记录标题
+        const historyTitle = document.querySelector('.game-history-section h3');
+        if (historyTitle) {
+            historyTitle.textContent = i18n[this.currentLang].setupSection.gameHistory;
+        }
     }
 
     setupEventListeners() {
@@ -78,22 +155,100 @@ class MonopolyBookkeeper {
         this.renderPlayersGrid();
     }
 
+    switchLanguage(lang) {
+        if (this.currentLang === lang) return;
+
+        this.currentLang = lang;
+        this.updateUILanguage();
+        this.updateLanguageButtons();
+        this.savePlayerData(); // 保存语言偏好
+
+        // 如果游戏已经开始，更新游戏界面
+        if (this.gameStarted) {
+            this.renderPlayersGrid();
+            this.updateGameHistory();
+        }
+    }
+
+    updateLanguageButtons() {
+        // 更新所有语言按钮的active状态
+        const allLangButtons = document.querySelectorAll('.lang-btn');
+        allLangButtons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // 激活当前语言对应的按钮
+        const activeButtons = [
+            `lang-${this.currentLang}-btn`,
+            `lang-${this.currentLang}-btn-setup`
+        ];
+        activeButtons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    updateGameHistory() {
+        const historyContainer = document.getElementById('real-time-history');
+        if (!historyContainer) return;
+
+        if (this.currentGameLog.length === 0) {
+            historyContainer.innerHTML = `<div class="no-records">${i18n[this.currentLang].gameLog.noOperationRecords}</div>`;
+            return;
+        }
+
+        historyContainer.innerHTML = this.currentGameLog.map(log => {
+            let message;
+            switch (log.actionType) {
+                case 'gameStart':
+                    message = i18n[this.currentLang].gameLog.gameStart;
+                    break;
+                case 'gameRestart':
+                    message = i18n[this.currentLang].gameLog.gameRestart;
+                    break;
+                case 'transfer':
+                    message = i18n[this.currentLang].gameLog.transfer;
+                    break;
+                case 'balance_adjust':
+                    message = i18n[this.currentLang].gameLog.balanceAdjust;
+                    break;
+                case 'add_player':
+                    message = i18n[this.currentLang].gameLog.addPlayer;
+                    break;
+                default:
+                    message = log.details.message || '';
+            }
+
+            // 替换模板变量
+            message = message.replace(/{(\w+)}/g, (match, key) => {
+                return log.details[key] || match;
+            });
+
+            return `<div class="history-item">
+                <span class="history-time">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                <span class="history-message">${message}</span>
+            </div>`;
+        }).reverse().join('');
+    }
+
     addPlayer() {
         const input = document.getElementById('new-player-name');
         const name = input.value.trim();
 
         if (!name) {
-            alert('请输入玩家名称');
+            alert(i18n[this.currentLang].messages.playerNameRequired);
             return;
         }
 
         if (this.players.length >= 6) {
-            alert('最多支持6个玩家');
+            alert(i18n[this.currentLang].messages.maxPlayers);
             return;
         }
 
         if (this.players.some(p => p.name === name)) {
-            alert('玩家名称已存在');
+            alert(i18n[this.currentLang].messages.playerNameExists);
             return;
         }
 
@@ -253,7 +408,7 @@ class MonopolyBookkeeper {
         const unit = activeUnit ? activeUnit.dataset.unit : 'M';
 
         if (!amount || amount <= 0) {
-            alert('请输入有效的转账金额');
+            alert(i18n[this.currentLang].messages.enterAmount);
             return;
         }
 
@@ -262,7 +417,7 @@ class MonopolyBookkeeper {
         const toPlayer = this.players.find(p => p.id === toPlayerId);
 
         if (fromPlayer.balance < actualAmount) {
-            alert(`${fromPlayer.name} 余额不足`);
+            alert(`${fromPlayer.name} ${this.currentLang === 'zh' ? '余额不足' : 'insufficient balance'}`);
             return;
         }
 
@@ -337,7 +492,7 @@ class MonopolyBookkeeper {
         const operation = operationBtn ? operationBtn.dataset.operation : 'add';
 
         if (isNaN(amount) || amount <= 0) {
-            alert('请输入有效的金额');
+            alert(i18n[this.currentLang].messages.enterAmount);
             return;
         }
 
@@ -369,7 +524,7 @@ class MonopolyBookkeeper {
 
     showAddPlayerModal() {
         if (this.players.length >= 6) {
-            alert('最多支持6个玩家');
+            alert(i18n[this.currentLang].messages.maxPlayers);
             return;
         }
 
@@ -409,12 +564,12 @@ class MonopolyBookkeeper {
         const name = document.getElementById('new-game-player-name').value.trim();
 
         if (!name) {
-            alert('请输入玩家名称');
+            alert(i18n[this.currentLang].messages.playerNameRequired);
             return;
         }
 
         if (this.players.some(p => p.name === name)) {
-            alert('玩家名称已存在');
+            alert(i18n[this.currentLang].messages.playerNameExists);
             return;
         }
 
@@ -452,7 +607,7 @@ class MonopolyBookkeeper {
 
     startGame() {
         if (this.players.length < 2) {
-            alert('至少需要2个玩家才能开始游戏');
+            alert(i18n[this.currentLang].messages.atLeastTwoPlayers);
             return;
         }
 
@@ -507,6 +662,7 @@ class MonopolyBookkeeper {
                 this.players = data.players || [];
                 this.initialAmount = data.initialAmount || 15;
                 this.amountUnit = data.amountUnit || 'M';
+                this.currentLang = data.currentLang || this.currentLang; // 恢复语言偏好
 
                 // 恢复UI设置
                 document.getElementById('initial-amount').value = this.initialAmount;
@@ -518,6 +674,18 @@ class MonopolyBookkeeper {
                 console.error('Failed to load player data:', e);
             }
         }
+
+        // 语言切换事件
+        const langButtons = ['lang-zh-btn', 'lang-en-btn', 'lang-zh-btn-setup', 'lang-en-btn-setup'];
+        langButtons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    const lang = btnId.includes('zh') ? 'zh' : 'en';
+                    this.switchLanguage(lang);
+                });
+            }
+        });
     }
 
     restoreUIToggleStates() {
@@ -539,6 +707,7 @@ class MonopolyBookkeeper {
             players: this.players,
             initialAmount: this.initialAmount,
             amountUnit: this.amountUnit,
+            currentLang: this.currentLang, // 保存语言偏好
             lastUpdated: new Date().toISOString()
         };
         localStorage.setItem('monopolyPlayerData', JSON.stringify(data));
@@ -669,7 +838,7 @@ class MonopolyBookkeeper {
 
             this.renderPlayersList();
 
-            alert('所有数据已清除');
+            alert(i18n[this.currentLang].messages.allDataCleared);
         }
     }
 
@@ -717,3 +886,8 @@ class MonopolyBookkeeper {
 const game = new MonopolyBookkeeper();
 // 暴露到全局作用域以便调试
 window.game = game;
+
+// 初始化国际化
+if (typeof i18n !== 'undefined') {
+            window.i18n = i18n;
+        }

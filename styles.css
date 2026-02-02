@@ -71,41 +71,37 @@ h3 {
 .unit-toggle {
     margin-left: 10px;
     display: inline-flex;
-    background: #f1f5f9;
-    border-radius: 8px;
-    padding: 2px;
-    border: 1px solid #e2e8f0;
 }
 
 .toggle-container {
-    display: flex;
-    border-radius: 6px;
-    overflow: hidden;
+    display: inline-flex;
+    background: #f7fafc;
+    border-radius: 25px;
+    padding: 4px;
+    border: 2px solid #e2e8f0;
 }
 
 .toggle-option {
-    padding: 8px 12px;
+    padding: 8px 16px;
     border: none;
     background: transparent;
-    color: #64748b;
+    border-radius: 20px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease;
-    border-radius: 6px;
+    color: #718096;
+    transition: all 0.3s ease;
     min-width: 60px;
 }
 
 .toggle-option:hover {
-    background: rgba(100, 116, 139, 0.1);
-    color: #475569;
+    color: #4a5568;
 }
 
 .toggle-option.active {
-    background: white;
-    color: #1e293b;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    font-weight: 600;
+    background: #5a67d8;
+    color: white;
+    box-shadow: 0 2px 4px rgba(90, 103, 216, 0.3);
 }
 
 .primary-btn {
@@ -559,5 +555,104 @@ h3 {
 
     .player-amount {
         font-size: 20px;
+    }
+}
+
+/* 语言切换样式 */
+.language-toggle-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.language-toggle {
+    display: inline-flex;
+    background: #f7fafc;
+    border-radius: 25px;
+    padding: 4px;
+    border: 2px solid #e2e8f0;
+}
+
+.lang-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #718096;
+    transition: all 0.3s ease;
+    min-width: 60px;
+}
+
+.lang-btn:hover {
+    color: #4a5568;
+}
+
+.lang-btn.active {
+    background: #5a67d8;
+    color: white;
+    box-shadow: 0 2px 4px rgba(90, 103, 216, 0.3);
+}
+
+.game-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* 游戏界面的语言切换样式 */
+.game-controls .language-toggle-container {
+    margin: 0; /* 游戏界面中不需要额外的margin */
+}
+
+.game-controls .language-toggle {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+    /* 保持与设置界面相同的圆角 */
+    border-radius: 25px;
+    padding: 4px;
+}
+
+.game-controls .lang-btn {
+    /* 继承基础样式，只调整需要变化的属性 */
+    font-size: 13px;
+    padding: 8px 16px; /* 保持与设置界面相同的内边距 */
+    min-width: 60px; /* 保持与设置界面相同的最小宽度 */
+    font-weight: 500;
+    /* 确保圆角与设置界面一致 */
+    border-radius: 20px;
+    /* 未激活状态保持透明背景和灰色文字 */
+    background: transparent;
+    color: #718096;
+    border: none;
+}
+
+.game-controls .lang-btn.active {
+    background: #5a67d8;
+    color: white;
+    box-shadow: 0 2px 4px rgba(90, 103, 216, 0.3);
+}
+
+.game-controls .lang-btn:hover {
+    color: #4a5568;
+    background: transparent; /* 保持透明背景 */
+}
+
+.game-controls .lang-btn.active:hover {
+    background: #5a67d8;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .game-controls {
+        justify-content: center;
+    }
+
+    .language-toggle {
+        transform: scale(0.9);
     }
 }
