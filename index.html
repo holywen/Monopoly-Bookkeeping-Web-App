@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大富翁记账</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 游戏设置界面 -->
+        <div id="setup-screen" class="screen active">
+            <h1>大富翁记账</h1>
+
+            <div class="setup-section">
+                <h3>初始金额设置</h3>
+                <div class="initial-amount-input">
+                    <input type="number" id="initial-amount" placeholder="输入初始金额" value="15">
+                    <div class="unit-toggle">
+                        <div class="toggle-container">
+                            <button class="toggle-option" data-unit="M">百万(M)</button>
+                            <button class="toggle-option" data-unit="K">千(K)</button>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-game-btn" class="primary-btn">开始游戏</button>
+            </div>
+
+            <div class="setup-section">
+                <h3>玩家管理</h3>
+                <div class="add-player">
+                    <input type="text" id="new-player-name" placeholder="输入玩家名称">
+                    <button id="add-player-btn">添加玩家</button>
+                </div>
+                <div id="players-list" class="players-list"></div>
+            </div>
+
+            
+            <div class="setup-section">
+                <h3>数据管理</h3>
+                <button id="clear-data-btn" style="background: #e53e3e;">清除所有数据</button>
+            </div>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <h2>大富翁记账</h2>
+                <div class="game-controls">
+                    <button id="add-player-game-btn">添加玩家</button>
+                    <button id="restart-game-btn">重新开始</button>
+                                    </div>
+            </div>
+
+            <div id="players-grid" class="players-grid"></div>
+
+            <div class="game-history-section">
+                <h3>操作记录</h3>
+                <div id="real-time-history" class="real-time-history"></div>
+            </div>
+
+            <div class="floating-actions">
+                <button id="clear-history-btn" title="清除当前游戏记录">清除记录</button>
+            </div>
+        </div>
+
+        <!-- 模态对话框 -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-title">标题</h3>
+                    <button id="close-modal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-content">
+                    <div id="modal-body"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
