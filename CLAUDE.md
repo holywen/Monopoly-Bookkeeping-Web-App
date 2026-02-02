@@ -31,8 +31,19 @@ The entire application is built around the `MonopolyBookkeeper` class in `script
 
 ### Data Management
 The application uses localStorage with two main keys:
-- `monopolyPlayerData` - Player information, settings, and preferences
+- `monopolyPlayerData` - Player information, settings, language preference, and game state
 - `monopolyGameHistory` - Legacy game history storage
+
+#### Data Structure
+```javascript
+{
+  players: [{id, name, balance}],
+  initialAmount: number,
+  amountUnit: 'M' | 'K',
+  currentLang: 'zh' | 'en',  // Language preference
+  lastUpdated: ISO string
+}
+```
 
 ## Key Features
 
@@ -48,17 +59,34 @@ The application uses localStorage with two main keys:
 - **Comprehensive Logging**: All operations are logged with timestamps and balance snapshots
 
 ### User Interface
-- **Setup Screen**: Player management and initial configuration
-- **Game Screen**: Main gameplay interface with player grid and history
+- **Setup Screen**: Player management and initial configuration with language toggle
+- **Game Screen**: Main gameplay interface with player grid, history, and language toggle
 - **Modal System**: Reusable overlay dialogs for all user interactions
+- **Toggle Components**: Unified pill-style toggle switches for language and amount units
+- **Responsive Design**: Mobile-friendly with adaptive layouts and touch controls
+
+### UI Component System
+- **Language Toggle**: Bilingual switcher (中文/EN) with consistent styling across screens
+- **Amount Unit Toggle**: Million (M) / Thousand (K) selector with pill design
+- **Player Cards**: Interactive cards with drag-and-drop, rank badges, and balance display
+- **Button Styling**: Consistent hover effects, transitions, and active states across all buttons
 
 ## Internationalization
 
 The application supports Chinese (zh-CN) and English (en) with:
-- Browser language auto-detection
+- Browser language auto-detection with fallback to English
 - Comprehensive text coverage including UI elements, messages, and game log entries
-- Template string support for dynamic content
+- Template string support for dynamic content interpolation
 - Organized by functional areas (buttons, labels, messages, etc.)
+- **Language Toggle UI**: Interactive language switcher buttons in both setup and game screens
+- **Persistent Language Preference**: Language choice is saved to localStorage and restored on reload
+- **Real-time Language Switching**: All UI elements update immediately when language is changed
+
+### i18n Implementation Details
+- Language structure: `i18n[langCode].category.item`
+- Initialization: `initI18n()` method called during app startup
+- UI Updates: `updateUILanguage()` and `updateGameInterfaceText()` methods
+- Storage: Language preference saved as `currentLang` in player data
 
 ## Development Patterns
 
@@ -73,6 +101,9 @@ The application supports Chinese (zh-CN) and English (en) with:
 - CSS custom properties for consistent theming
 - Mobile-first design with touch-friendly controls
 - Semantic color coding (green for positive, red for negative balances)
+- **Unified Toggle Design**: Pill-style buttons with consistent styling across all components
+- **Modern UI Elements**: Rounded corners, smooth transitions, and subtle shadows
+- **Responsive Toggles**: Language and unit switches adapt to different screen sizes
 
 ### Data Handling
 - Input validation and sanitization throughout
@@ -85,8 +116,15 @@ The application supports Chinese (zh-CN) and English (en) with:
 ### Adding New Features
 1. Extend the `MonopolyBookkeeper` class with new methods
 2. Add corresponding UI elements to `index.html`
-3. Style new components in `styles.css`
-4. Add internationalization strings to `i18n.js`
+3. Style new components in `styles.css` following the unified design system
+4. Add internationalization strings to both `zh` and `en` sections in `i18n.js`
+5. Update `updateUILanguage()` and `updateGameInterfaceText()` if new UI text is added
+
+### Adding New Languages
+1. Add new language section to `i18n.js` following the existing structure
+2. Update `initI18n()` method to include language detection logic
+3. Add corresponding language toggle buttons if needed
+4. Test all UI elements and error messages in the new language
 
 ### Modifying Transaction Logic
 - Core transaction processing is in the `MonopolyBookkeeper` class methods
@@ -98,10 +136,17 @@ The application supports Chinese (zh-CN) and English (en) with:
 - History panel: `updateGameHistory()` method
 - Modal dialogs: `showModal()` method with dynamic content
 
+### UI Updates
+- Player grid rendering: `renderPlayersGrid()` method
+- History panel: `updateGameHistory()` method with i18n support
+- Modal dialogs: `showModal()` method with dynamic content
+- Language switching: `switchLanguage()` and `updateLanguageButtons()` methods
+
 ### Data Persistence
 - All save operations use `savePlayerData()` method
-- Data loading happens in `loadPlayerData()` method
+- Data loading happens in `loadPlayerData()` method with language preference restoration
 - Game logs are managed separately from player data
+- Language preferences are automatically saved and restored
 
 ## Technical Considerations
 
